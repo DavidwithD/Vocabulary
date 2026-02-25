@@ -1,0 +1,291 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f8f9fa;
+  color: #1a1a2e;
+}
+
+.container {
+  padding: 16px;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #4361ee;
+}
+
+button {
+  padding: 8px 16px;
+  background: #4361ee;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #3a56d4;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.word-count {
+  font-size: 12px;
+  color: #868e96;
+}
+
+.list-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  padding: 2px 6px;
+  font-size: 14px;
+  line-height: 1;
+  background: none;
+  color: #adb5bd;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.action-btn:hover {
+  color: #4361ee;
+  background: #e8ecf4;
+}
+
+ul {
+  list-style: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+ul li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+ul li .word-info {
+  flex: 1;
+}
+
+ul li .word-info strong {
+  display: block;
+  font-size: 14px;
+  color: #1a1a2e;
+}
+
+ul li .word-info span {
+  font-size: 12px;
+  color: #868e96;
+  margin-top: 2px;
+  display: block;
+}
+
+ul li .delete-btn {
+  background: none;
+  border: none;
+  color: #dee2e6;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 0 0 8px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+ul li .delete-btn:hover {
+  color: #e63946;
+}
+
+/* Settings row */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #868e96;
+}
+
+.settings-row select {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1a1a2e;
+  background: white;
+  cursor: pointer;
+}
+
+/* Page statistics */
+.page-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.page-stats .stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-stats .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.page-stats .label {
+  color: #868e96;
+}
+
+/* Tab navigation */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #868e96;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.tab:hover {
+  color: #4361ee;
+  background: none;
+}
+
+.tab.active {
+  color: #4361ee;
+  border-bottom-color: #4361ee;
+  background: none;
+}
+
+.tab span {
+  font-weight: 400;
+  font-size: 11px;
+  color: #adb5bd;
+  margin-left: 4px;
+}
+
+/* Word action buttons */
+.word-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.promote-btn,
+.demote-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  color: #adb5bd;
+  transition: color 0.2s;
+}
+
+.promote-btn:hover {
+  color: #4CAF50;
+  background: none;
+}
+
+.demote-btn:hover {
+  color: #e65100;
+  background: none;
+}
+
+.empty-state {
+  text-align: center;
+  color: #adb5bd;
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #dee2e6;
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .slider {
+  background: #4361ee;
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(16px);
+}

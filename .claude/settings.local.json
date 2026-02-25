@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \":*)",
+      "Bash(python -c \":*)",
+      "Bash(python3 -c \"import json; f = open\\(''/c/Users/l.kou/Documents/GitHub/Vocabulary/common-words-3000.json''\\); data = json.load\\(f\\); print\\(f''Number of words: {len\\(data\\)}''\\); print\\(f''First 10 words: {[w[\"\"value\"\"] if isinstance\\(w, dict\\) else w for w in data[:10]]}''\\)\")"
+    ]
+  }
+}
