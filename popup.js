@@ -16,7 +16,7 @@ const familiarCount = document.getElementById('familiarCount');
 const wordCount = document.getElementById('wordCount');
 const emptyState = document.getElementById('emptyState');
 const tabs = document.querySelectorAll('.tab');
-const thresholdSelect = document.getElementById('threshold');
+const cefrLevelSelect = document.getElementById('cefrLevel');
 const listActions = document.getElementById('listActions');
 const copyBtn = document.getElementById('copyBtn');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -147,13 +147,22 @@ familiarList.addEventListener('click', (e) => {
   }
 });
 
-// Threshold setting
-chrome.storage.local.get({ commonWordThreshold: 3000 }, (data) => {
-  thresholdSelect.value = data.commonWordThreshold;
+// CEFR level setting
+chrome.storage.local.get({ cefrLevel: null, commonWordThreshold: null }, (data) => {
+  if (!data.cefrLevel && data.commonWordThreshold) {
+    // Migrate old threshold to CEFR level
+    const map = { 1000: 'A2', 2000: 'B1', 3000: 'B2', 5000: 'C1', 7000: 'C2', 10000: 'C2' };
+    const level = map[data.commonWordThreshold] || 'B2';
+    chrome.storage.local.set({ cefrLevel: level });
+    chrome.storage.local.remove('commonWordThreshold');
+    cefrLevelSelect.value = level;
+  } else {
+    cefrLevelSelect.value = data.cefrLevel || 'B2';
+  }
 });
 
-thresholdSelect.addEventListener('change', () => {
-  chrome.storage.local.set({ commonWordThreshold: Number(thresholdSelect.value) });
+cefrLevelSelect.addEventListener('change', () => {
+  chrome.storage.local.set({ cefrLevel: cefrLevelSelect.value });
 });
 
 loadWords();

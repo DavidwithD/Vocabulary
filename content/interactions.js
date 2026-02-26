@@ -186,8 +186,15 @@ const observer = new MutationObserver((mutations) => {
 });
 
 // Load words from storage and start highlighting
-chrome.storage.local.get({ words: [], commonWordThreshold: DEFAULT_THRESHOLD, highlightEnabled: true }, (data) => {
-  buildCommonWordsSet(data.commonWordThreshold);
+chrome.storage.local.get({ words: [], cefrLevel: null, commonWordThreshold: null, highlightEnabled: true }, (data) => {
+  // Migration: convert old numeric threshold to CEFR level
+  let level = data.cefrLevel;
+  if (!level && data.commonWordThreshold) {
+    level = thresholdToCefrLevel(data.commonWordThreshold);
+    chrome.storage.local.set({ cefrLevel: level });
+    chrome.storage.local.remove('commonWordThreshold');
+  }
+  buildCommonWordsSet(level || DEFAULT_CEFR_LEVEL);
   const { familiar, learning } = buildWordSets(data.words);
   baseWordSet = familiar;
   learningWordSet = learning;
@@ -221,9 +228,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     return;
   }
 
-  // Threshold changed from popup — rebuild common words Set and refresh
-  if (changes.commonWordThreshold) {
-    buildCommonWordsSet(changes.commonWordThreshold.newValue || DEFAULT_THRESHOLD);
+  // CEFR level changed from popup — rebuild common words Set and refresh
+  if (changes.cefrLevel) {
+    buildCommonWordsSet(changes.cefrLevel.newValue || DEFAULT_CEFR_LEVEL);
     if (highlightEnabled) refreshHighlighting();
     return;
   }

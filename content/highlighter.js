@@ -29,7 +29,7 @@ function removeHighlights(root) {
  * Collect text nodes from `root` that need highlighting.
  */
 function collectTextNodes(root) {
-  if (typeof nlp !== 'function' || typeof COMMON_WORDS_RANKED === 'undefined') return [];
+  if (typeof nlp !== 'function' || typeof CEFR_WORDS === 'undefined') return [];
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vocabulary Builder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Chrome extension to help you build your vocabulary.",
   "action": {
     "default_popup": "popup.html",
@@ -20,7 +20,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["compromise.min.js", "common-words.js", "content/state.js", "content/lemmatizer.js", "content/highlighter.js", "content/interactions.js"],
+      "js": ["compromise.min.js", "cefr-words.js", "content/state.js", "content/lemmatizer.js", "content/highlighter.js", "content/interactions.js"],
       "run_at": "document_idle"
     }
   ]

@@ -5,10 +5,12 @@ node_modules/
 package.json
 package-lock.json
 
-# Temporary files
+# Source data files (downloaded for build)
 common-words-raw.txt
 common-words-3000.json
+EFLLex.tsv
+octanove-vocabulary-profile-c1c2-1.0.csv
 
 # Keep the generated libraries
 !compromise.min.js
-!common-words.js
+!cefr-words.js

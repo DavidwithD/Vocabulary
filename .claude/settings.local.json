@@ -3,7 +3,12 @@
     "allow": [
       "Bash(python3 -c \":*)",
       "Bash(python -c \":*)",
-      "Bash(python3 -c \"import json; f = open\\(''/c/Users/l.kou/Documents/GitHub/Vocabulary/common-words-3000.json''\\); data = json.load\\(f\\); print\\(f''Number of words: {len\\(data\\)}''\\); print\\(f''First 10 words: {[w[\"\"value\"\"] if isinstance\\(w, dict\\) else w for w in data[:10]]}''\\)\")"
+      "Bash(python3 -c \"import json; f = open\\(''/c/Users/l.kou/Documents/GitHub/Vocabulary/common-words-3000.json''\\); data = json.load\\(f\\); print\\(f''Number of words: {len\\(data\\)}''\\); print\\(f''First 10 words: {[w[\"\"value\"\"] if isinstance\\(w, dict\\) else w for w in data[:10]]}''\\)\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -o \"c:/Users/l.kou/Documents/GitHub/Vocabulary/EFLLex.tsv\" \"https://cental.uclouvain.be/cefrlex/static/resources/en/EFLLex.tsv\")",
+      "Bash(curl -o \"c:/Users/l.kou/Documents/GitHub/Vocabulary/octanove-vocabulary-profile-c1c2-1.0.csv\" \"https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/octanove-vocabulary-profile-c1c2-1.0.csv\")",
+      "Bash(node \"c:/Users/l.kou/Documents/GitHub/Vocabulary/scripts/build-cefr-words.js\")"
     ]
   }
 }
