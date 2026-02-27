@@ -5,6 +5,7 @@
 | ID | Decision | Date | Status |
 |---|---|---|---|
 | [001](001-compromise-js.md) | Use compromise.js for lemmatization | 2026-02-24 | `accepted` |
+| [002](002-french-lemmatizer.md) | Rule-based French lemmatizer | 2026-02-27 | `accepted` |
 
 <!-- Add new decisions here -->
 

@@ -4,6 +4,16 @@
 
 const CHUNK_SIZE = 50; // Text nodes processed per animation frame
 
+// Unicode-aware word detection: matches letters including accented characters
+const WORD_CHAR_RE = /\p{L}/u;
+// Split text into word and non-word tokens (Unicode-aware)
+function splitIntoTokens(text) {
+  return text.match(/\p{L}+|[^\p{L}]+/gu) || [];
+}
+function isWordToken(token) {
+  return WORD_CHAR_RE.test(token);
+}
+
 /**
  * Remove all previously applied highlights, restoring original text nodes.
  */
@@ -29,7 +39,7 @@ function removeHighlights(root) {
  * Collect text nodes from `root` that need highlighting.
  */
 function collectTextNodes(root) {
-  if (typeof nlp !== 'function' || typeof CEFR_WORDS === 'undefined') return [];
+  if (typeof CEFR_WORDS === 'undefined' && typeof CEFR_WORDS_FR === 'undefined') return [];
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -59,12 +69,12 @@ function processTextNode(textNode) {
   const text = textNode.textContent;
   if (!text.trim()) return;
 
-  const words = text.split(/\b/);
+  const tokens = splitIntoTokens(text);
   const fragment = document.createDocumentFragment();
 
-  words.forEach(word => {
-    if (/\w/.test(word)) {
-      if (/^[\d.,]+$|^\d+(st|nd|rd|th)$/i.test(word)) {
+  tokens.forEach(word => {
+    if (isWordToken(word)) {
+      if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème)$/i.test(word)) {
         fragment.appendChild(document.createTextNode(word));
         return;
       }
@@ -153,14 +163,14 @@ function wrapWordInTextNodes(root, targetLemma) {
     const text = textNode.textContent;
     if (!text.trim()) return;
 
-    const words = text.split(/\b/);
+    const tokens = splitIntoTokens(text);
     // Quick check: does this node contain the target word?
-    const hasTarget = words.some(w => /\w/.test(w) && lemmatize(w) === targetLemma);
+    const hasTarget = tokens.some(w => isWordToken(w) && lemmatize(w) === targetLemma);
     if (!hasTarget) return;
 
     const fragment = document.createDocumentFragment();
-    words.forEach(w => {
-      if (/\w/.test(w) && !/^[\d.,]+$|^\d+(st|nd|rd|th)$/i.test(w) && lemmatize(w) === targetLemma) {
+    tokens.forEach(w => {
+      if (isWordToken(w) && !/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème)$/i.test(w) && lemmatize(w) === targetLemma) {
         const span = document.createElement('span');
         span.textContent = w;
         span.className = LEARNING_CLASS;

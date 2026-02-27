@@ -1,6 +1,6 @@
 # Vocabulary Builder
 
-A Chrome extension that helps users build vocabulary by maintaining a personal word list and highlighting those words (in all their forms) on any web page.
+A Chrome extension that helps users build vocabulary in **English** and **French** by maintaining a personal word list per language and highlighting unfamiliar words (in all their forms) on any web page.
 
 ## Docs
 
@@ -16,5 +16,5 @@ A Chrome extension that helps users build vocabulary by maintaining a personal w
 1. Go to `chrome://extensions`
 2. Enable "Developer mode"
 3. Click "Load unpacked" and select this project folder
-4. Click the extension icon to add words
-5. Browse any web page — your words will be highlighted in bold red
+4. Click the extension icon — select your language (English or Français) and CEFR level
+5. Browse any web page — unfamiliar words are highlighted in lavender, learning words in amber

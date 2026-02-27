@@ -13,6 +13,7 @@
 | F-07 | [Page Statistics](F-07-page-stats.md) | `done` | Show unfamiliar/learning/familiar word counts per page in popup |
 | F-08 | [Highlight Toggle](F-08-highlight-toggle.md) | `done` | Toggle highlighting on/off from popup for distraction-free reading |
 | F-09 | [Copy & Download](F-09-copy-download.md) | `done` | Copy or download word lists as plain text |
+| F-10 | [French Language Support](F-10-french-language.md) | `done` | Language selector with French CEFR word list and lemmatizer |
 
 <!-- Add new features here -->
 

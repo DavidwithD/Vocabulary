@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const EFLLEX_PATH = path.join(ROOT, 'EFLLex.tsv');
-const OCTANOVE_PATH = path.join(ROOT, 'octanove-vocabulary-profile-c1c2-1.0.csv');
-const OUTPUT_PATH = path.join(ROOT, 'cefr-words.js');
+const EFLLEX_PATH = path.join(ROOT, 'sources', 'EFLLex.tsv');
+const OCTANOVE_PATH = path.join(ROOT, 'sources', 'octanove-vocabulary-profile-c1c2-1.0.csv');
+const OUTPUT_PATH = path.join(ROOT, 'data', 'cefr-words.js');
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const ALL_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];

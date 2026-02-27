@@ -7,6 +7,10 @@ const UNKNOWN_CLASS = 'vocab-builder-unknown';  // Unknown uncommon words (laven
 const LEARNING_CLASS = 'vocab-builder-learning'; // Learning words (amber background)
 
 const DEFAULT_CEFR_LEVEL = 'B2';
+const DEFAULT_LANGUAGE = 'en';
+// CEFR_LEVELS is defined in cefr-words.js: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+
+let currentLanguage = DEFAULT_LANGUAGE;
 let COMMON_WORDS = new Set();
 
 let baseWordSet = new Set();      // Familiar words
@@ -20,16 +24,28 @@ const pageLearningLemmas = new Set();
 const pageFamiliarLemmas = new Set();
 
 /**
+ * Get the storage key for the current language's word list.
+ */
+function getWordsKey() {
+  return 'words_' + currentLanguage;
+}
+
+/**
  * Build the common words Set from all words at or below the given CEFR level.
+ * Picks the correct word list based on currentLanguage.
  */
 function buildCommonWordsSet(cefrLevel) {
-  if (typeof CEFR_WORDS === 'undefined') return;
+  const source = currentLanguage === 'fr'
+    ? (typeof CEFR_WORDS_FR !== 'undefined' ? CEFR_WORDS_FR : null)
+    : (typeof CEFR_WORDS !== 'undefined' ? CEFR_WORDS : null);
+  if (!source) return;
+
   const idx = CEFR_LEVELS.indexOf(cefrLevel);
   if (idx === -1) return;
 
   const words = [];
   for (let i = 0; i <= idx; i++) {
-    words.push(...CEFR_WORDS[CEFR_LEVELS[i]]);
+    words.push(...source[CEFR_LEVELS[i]]);
   }
   COMMON_WORDS = new Set(words);
 }

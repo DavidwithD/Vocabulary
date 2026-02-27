@@ -8,7 +8,14 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(curl -o \"c:/Users/l.kou/Documents/GitHub/Vocabulary/EFLLex.tsv\" \"https://cental.uclouvain.be/cefrlex/static/resources/en/EFLLex.tsv\")",
       "Bash(curl -o \"c:/Users/l.kou/Documents/GitHub/Vocabulary/octanove-vocabulary-profile-c1c2-1.0.csv\" \"https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/octanove-vocabulary-profile-c1c2-1.0.csv\")",
-      "Bash(node \"c:/Users/l.kou/Documents/GitHub/Vocabulary/scripts/build-cefr-words.js\")"
+      "Bash(node \"c:/Users/l.kou/Documents/GitHub/Vocabulary/scripts/build-cefr-words.js\")",
+      "Bash(ls -la /c/Users/l.kou/Documents/GitHub/Vocabulary/*.csv)",
+      "Bash(ls -la /c/Users/l.kou/Documents/GitHub/Vocabulary/*.js /c/Users/l.kou/Documents/GitHub/Vocabulary/content/*.js /c/Users/l.kou/Documents/GitHub/Vocabulary/*.css)",
+      "Bash(grep -r \"french\\\\|French\\\\|français\" /c/Users/l.kou/Documents/GitHub/Vocabulary/*.js /c/Users/l.kou/Documents/GitHub/Vocabulary/*.json /c/Users/l.kou/Documents/GitHub/Vocabulary/*.html)",
+      "WebFetch(domain:cental.uclouvain.be)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:bundlephobia.com)",
+      "Bash(node scripts/build-cefr-words-fr.js)"
     ]
   }
 }

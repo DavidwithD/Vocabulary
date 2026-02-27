@@ -23,13 +23,15 @@ function addWordAsLearning(lemma) {
 
   lastLocalUpdate = Date.now();
 
-  chrome.storage.local.get({ words: [] }, (data) => {
-    const exists = data.words.some(entry => entry.word.toLowerCase() === lemma);
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    const words = data[key];
+    const exists = words.some(entry => entry.word.toLowerCase() === lemma);
     if (exists) return;
 
     const newWord = { word: lemma, status: 'learning' };
-    const updatedWords = [newWord, ...data.words];
-    chrome.storage.local.set({ words: updatedWords });
+    const updatedWords = [newWord, ...words];
+    chrome.storage.local.set({ [key]: updatedWords });
   });
 }
 
@@ -54,14 +56,15 @@ function promoteToFamiliar(lemma) {
 
   lastLocalUpdate = Date.now();
 
-  chrome.storage.local.get({ words: [] }, (data) => {
-    const updatedWords = data.words.map(entry => {
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    const updatedWords = data[key].map(entry => {
       if (entry.word.toLowerCase() === lemma) {
         return { ...entry, status: 'familiar' };
       }
       return entry;
     });
-    chrome.storage.local.set({ words: updatedWords });
+    chrome.storage.local.set({ [key]: updatedWords });
   });
 }
 
@@ -86,14 +89,15 @@ function demoteToLearning(lemma) {
 
   lastLocalUpdate = Date.now();
 
-  chrome.storage.local.get({ words: [] }, (data) => {
-    const updatedWords = data.words.map(entry => {
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    const updatedWords = data[key].map(entry => {
       if (entry.word.toLowerCase() === lemma) {
         return { ...entry, status: 'learning' };
       }
       return entry;
     });
-    chrome.storage.local.set({ words: updatedWords });
+    chrome.storage.local.set({ [key]: updatedWords });
   });
 }
 
@@ -108,13 +112,15 @@ function addCommonWordAsLearning(word) {
 
   lastLocalUpdate = Date.now();
 
-  chrome.storage.local.get({ words: [] }, (data) => {
-    const exists = data.words.some(entry => entry.word.toLowerCase() === lemma);
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    const words = data[key];
+    const exists = words.some(entry => entry.word.toLowerCase() === lemma);
     if (exists) return;
 
     const newWord = { word: lemma, status: 'learning' };
-    const updatedWords = [newWord, ...data.words];
-    chrome.storage.local.set({ words: updatedWords });
+    const updatedWords = [newWord, ...words];
+    chrome.storage.local.set({ [key]: updatedWords });
   });
 
   // Targeted update: walk text nodes and wrap only this word's occurrences
@@ -159,7 +165,7 @@ document.addEventListener('dblclick', (e) => {
     // Possibly a common word (plain text)
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
-    if (selectedText && /^\w+$/.test(selectedText)) {
+    if (selectedText && /^\p{L}+$/u.test(selectedText)) {
       const lemma = lemmatize(selectedText);
       if (COMMON_WORDS.has(lemma)) {
         addCommonWordAsLearning(selectedText);
@@ -186,7 +192,19 @@ const observer = new MutationObserver((mutations) => {
 });
 
 // Load words from storage and start highlighting
-chrome.storage.local.get({ words: [], cefrLevel: null, commonWordThreshold: null, highlightEnabled: true }, (data) => {
+chrome.storage.local.get({
+  words: null, words_en: null, words_fr: [],
+  language: DEFAULT_LANGUAGE,
+  cefrLevel: null, commonWordThreshold: null,
+  highlightEnabled: true
+}, (data) => {
+  // Migration: move old `words` key to `words_en`
+  if (data.words !== null && data.words_en === null) {
+    chrome.storage.local.set({ words_en: data.words });
+    chrome.storage.local.remove('words');
+    data.words_en = data.words;
+  }
+
   // Migration: convert old numeric threshold to CEFR level
   let level = data.cefrLevel;
   if (!level && data.commonWordThreshold) {
@@ -194,8 +212,13 @@ chrome.storage.local.get({ words: [], cefrLevel: null, commonWordThreshold: null
     chrome.storage.local.set({ cefrLevel: level });
     chrome.storage.local.remove('commonWordThreshold');
   }
+
+  currentLanguage = data.language || DEFAULT_LANGUAGE;
   buildCommonWordsSet(level || DEFAULT_CEFR_LEVEL);
-  const { familiar, learning } = buildWordSets(data.words);
+
+  const wordsKey = getWordsKey();
+  const wordList = data[wordsKey] || [];
+  const { familiar, learning } = buildWordSets(wordList);
   baseWordSet = familiar;
   learningWordSet = learning;
   highlightEnabled = data.highlightEnabled;
@@ -210,8 +233,7 @@ if (highlightEnabled) {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// Re-highlight when word list changes (e.g., user adds/removes a word in popup)
-// Skip if we just updated from this page to avoid expensive re-highlighting
+// Re-highlight when word list or settings change
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
 
@@ -228,6 +250,24 @@ chrome.storage.onChanged.addListener((changes, area) => {
     return;
   }
 
+  // Language changed from popup — switch everything and re-highlight
+  if (changes.language) {
+    currentLanguage = changes.language.newValue || DEFAULT_LANGUAGE;
+    // Rebuild common words for the new language
+    chrome.storage.local.get({ cefrLevel: DEFAULT_CEFR_LEVEL }, (data) => {
+      buildCommonWordsSet(data.cefrLevel || DEFAULT_CEFR_LEVEL);
+      // Load word list for the new language
+      const wordsKey = getWordsKey();
+      chrome.storage.local.get({ [wordsKey]: [] }, (wordData) => {
+        const { familiar, learning } = buildWordSets(wordData[wordsKey]);
+        baseWordSet = familiar;
+        learningWordSet = learning;
+        if (highlightEnabled) refreshHighlighting();
+      });
+    });
+    return;
+  }
+
   // CEFR level changed from popup — rebuild common words Set and refresh
   if (changes.cefrLevel) {
     buildCommonWordsSet(changes.cefrLevel.newValue || DEFAULT_CEFR_LEVEL);
@@ -235,7 +275,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     return;
   }
 
-  if (changes.words) {
+  // Word list changed for the current language
+  const wordsKey = getWordsKey();
+  if (changes[wordsKey]) {
     // If update happened less than 500ms ago, it was from this page - skip refresh
     const now = Date.now();
     if (now - lastLocalUpdate < 500) {
@@ -243,7 +285,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 
     // Update from another source (popup, another tab) - need full refresh
-    const { familiar, learning } = buildWordSets(changes.words.newValue || []);
+    const { familiar, learning } = buildWordSets(changes[wordsKey].newValue || []);
     baseWordSet = familiar;
     learningWordSet = learning;
     if (highlightEnabled) refreshHighlighting();

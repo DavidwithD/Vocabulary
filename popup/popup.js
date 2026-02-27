@@ -1,3 +1,11 @@
+// Language selector
+const languageSelect = document.getElementById('language');
+let currentLang = 'en';
+
+function getWordsKey() {
+  return 'words_' + currentLang;
+}
+
 // Highlight toggle
 const highlightToggle = document.getElementById('highlightToggle');
 
@@ -36,13 +44,15 @@ tabs.forEach(tab => {
 });
 
 function loadWords() {
-  chrome.storage.local.get({ words: [] }, (data) => {
-    renderWords(data.words);
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    renderWords(data[key]);
   });
 }
 
 function saveWords(words) {
-  chrome.storage.local.set({ words });
+  const key = getWordsKey();
+  chrome.storage.local.set({ [key]: words });
 }
 
 function renderWords(words) {
@@ -107,8 +117,9 @@ function escapeHtml(text) {
 
 // Handle promote, demote, and delete using word as identifier
 function handleWordAction(action, targetWord) {
-  chrome.storage.local.get({ words: [] }, (data) => {
-    let words = data.words;
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    let words = data[key];
     if (action === 'promote') {
       words = words.map(e =>
         e.word.toLowerCase() === targetWord ? { ...e, status: 'familiar' } : e
@@ -147,6 +158,25 @@ familiarList.addEventListener('click', (e) => {
   }
 });
 
+// Language setting — load and handle changes
+chrome.storage.local.get({ language: 'en', words: null, words_en: null }, (data) => {
+  // Migration: move old `words` key to `words_en`
+  if (data.words !== null && data.words_en === null) {
+    chrome.storage.local.set({ words_en: data.words });
+    chrome.storage.local.remove('words');
+  }
+
+  currentLang = data.language || 'en';
+  languageSelect.value = currentLang;
+  loadWords();
+});
+
+languageSelect.addEventListener('change', () => {
+  currentLang = languageSelect.value;
+  chrome.storage.local.set({ language: currentLang });
+  loadWords();
+});
+
 // CEFR level setting
 chrome.storage.local.get({ cefrLevel: null, commonWordThreshold: null }, (data) => {
   if (!data.cefrLevel && data.commonWordThreshold) {
@@ -165,12 +195,11 @@ cefrLevelSelect.addEventListener('change', () => {
   chrome.storage.local.set({ cefrLevel: cefrLevelSelect.value });
 });
 
-loadWords();
-
 // Copy and Download handlers
 function getActiveWords(callback) {
-  chrome.storage.local.get({ words: [] }, (data) => {
-    const filtered = data.words
+  const key = getWordsKey();
+  chrome.storage.local.get({ [key]: [] }, (data) => {
+    const filtered = data[key]
       .filter(e => (e.status || 'familiar') === activeTab)
       .map(e => e.word);
     callback(filtered);
@@ -195,7 +224,7 @@ downloadBtn.addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = activeTab + '-words.txt';
+    a.download = activeTab + '-words-' + currentLang + '.txt';
     a.click();
     URL.revokeObjectURL(url);
   });
