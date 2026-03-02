@@ -14,6 +14,7 @@
 | F-08 | [Highlight Toggle](F-08-highlight-toggle.md) | `done` | Toggle highlighting on/off from popup for distraction-free reading |
 | F-09 | [Copy & Download](F-09-copy-download.md) | `done` | Copy or download word lists as plain text |
 | F-10 | [French Language Support](F-10-french-language.md) | `done` | Language selector with French CEFR word list and lemmatizer |
+| F-11 | [CEFR Vocabulary Levels](F-11-cefr-vocabulary-levels.md) | `done` | Replace numeric threshold with A1–C2 CEFR level selector backed by EFLLex data |
 
 <!-- Add new features here -->
 

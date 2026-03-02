@@ -52,18 +52,27 @@ function parseFLELex() {
     });
   }
 
-  // Assign each word to the level with the highest aggregated frequency
+  // Assign each word to the lowest level where frequency meets threshold
+  const THRESHOLD = 5; // Minimum frequency to consider a word present at that level
   const result = new Map(); // word -> level
+  
   for (const [word, freqs] of wordFreqs) {
-    let bestLevel = 'C2';
-    let bestFreq = 0;
+    let assignedLevel = null;
+    
+    // Check levels from A1 to C2, assign to first level meeting threshold
     for (const lvl of LEVELS) {
-      if (freqs[lvl] > bestFreq) {
-        bestFreq = freqs[lvl];
-        bestLevel = lvl;
+      if (freqs[lvl] >= THRESHOLD) {
+        assignedLevel = lvl;
+        break;
       }
     }
-    result.set(word, bestLevel);
+    
+    // If no level meets threshold, assign to C2 (very rare words)
+    if (!assignedLevel) {
+      assignedLevel = 'C2';
+    }
+    
+    result.set(word, assignedLevel);
   }
 
   return result;
