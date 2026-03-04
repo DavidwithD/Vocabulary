@@ -11,7 +11,8 @@ Unresolved items, ideas, and things to investigate. Move items out of here once 
 - [ ] Highlight color customization?
 - [x] Should "seen" state (clicked → blue) persist across page loads?
   - **Resolved in F-04:** Replaced by three-state lifecycle (unfamiliar → learning → familiar) which persists via `chrome.storage.local`
-- [ ] Additional languages beyond English and French? (German, Spanish, etc.)
+- [ ] Additional languages beyond English, French, and Spanish? (German, Italian, etc.)
+  - Spanish added in F-12. Italian blocked on finding a suitable CEFR dataset (KELLY project has one in XLS format).
 - [ ] Improve French lemmatizer coverage — expand irregular verb table or integrate a dictionary-based lookup
 - [ ] Auto-detect page language instead of requiring manual switching?
 

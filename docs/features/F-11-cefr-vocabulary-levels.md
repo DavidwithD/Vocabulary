@@ -29,8 +29,12 @@ Two open datasets are merged into a single generated file per language:
 **French (`data/cefr-words-fr.js`):**
 - FLELex (UCLouvain, same project) — French equivalent of EFLLex
 
+**Spanish (`data/cefr-words-es.js`):**
+- [ELELex](https://cental.uclouvain.be/cefrlex/elelex/) (UCLouvain, CC BY-NC-SA 4.0) — 14,290 lexical entries, A1–C1
+
 Combined English dataset: **10,637 unique words** across all levels.
 Combined French dataset: **13,048 unique words** across all levels.
+Combined Spanish dataset: **12,300 unique words** across all levels.
 
 ### Level Assignment (EFLLex)
 
@@ -57,7 +61,7 @@ const CEFR_WORDS = {
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 ```
 
-Both `CEFR_WORDS` and `CEFR_LEVELS` are shared by both English and French files; the French file defines `CEFR_WORDS_FR` instead.
+`CEFR_LEVELS` is shared across all language files. Each language defines its own object: `CEFR_WORDS` (English), `CEFR_WORDS_FR` (French), `CEFR_WORDS_ES` (Spanish).
 
 ### Rebuilding the Data File
 
@@ -66,8 +70,10 @@ npm run build:cefr
 ```
 
 Requires the source files in `sources/`:
-- `sources/EFLLex.tsv`
-- `sources/octanove-vocabulary-profile-c1c2-1.0.csv`
+- `sources/EFLLex.tsv` (English)
+- `sources/octanove-vocabulary-profile-c1c2-1.0.csv` (English C2 supplement)
+- `sources/FLELex.csv` (French)
+- `sources/ELELex.tsv` (Spanish)
 
 These are gitignored (download-only build inputs).
 
@@ -109,17 +115,20 @@ Changing the level saves to storage immediately. All open tabs rebuild their `CO
 |---|---|
 | `data/cefr-words.js` | New — CEFR-organized word data (replaces `common-words.js`) |
 | `data/cefr-words-fr.js` | New — French CEFR word data |
+| `data/cefr-words-es.js` | New — Spanish CEFR word data |
 | `scripts/build-cefr-words.js` | New — build script for English data |
 | `scripts/build-cefr-words-fr.js` | New — build script for French data |
+| `scripts/build-cefr-words-es.js` | New — build script for Spanish data |
 | `content/state.js` | `DEFAULT_CEFR_LEVEL`, rewritten `buildCommonWordsSet(cefrLevel)`, `thresholdToCefrLevel()` migration helper |
-| `content/highlighter.js` | Guard updated to check `CEFR_WORDS` / `CEFR_WORDS_FR` |
+| `content/highlighter.js` | Guard updated to check `CEFR_WORDS` / `CEFR_WORDS_FR` / `CEFR_WORDS_ES` |
 | `content/interactions.js` | Storage key `cefrLevel`, migration from `commonWordThreshold` |
 | `popup/popup.html` | CEFR `<select>` dropdown replaces numeric threshold |
 | `popup/popup.js` | Binds to `cefrLevel`, includes migration logic |
-| `manifest.json` | Swapped `common-words.js` → `data/cefr-words.js` + `data/cefr-words-fr.js` |
+| `manifest.json` | Swapped `common-words.js` → `data/cefr-words.js` + `data/cefr-words-fr.js` + `data/cefr-words-es.js` |
 
 ## Dependencies
 
 - [F-06: Configurable Common Words Threshold](F-06-configurable-threshold.md) — superseded by this feature
-- [F-10: French Language Support](F-10-french-language.md) — CEFR level selector applies to both languages
+- [F-10: French Language Support](F-10-french-language.md) — CEFR level selector applies to all languages
+- [F-12: Spanish Language Support](F-12-spanish-language.md) — Spanish CEFR data from ELELex
 - [ADR-003: CEFR Data Sources](../decisions/003-cefr-data-sources.md)

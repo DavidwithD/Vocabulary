@@ -49,8 +49,7 @@ function lemmatizeEn(word) {
  * Dispatch lemmatization to the correct language handler.
  */
 function lemmatize(word) {
-  if (currentLanguage === 'fr') {
-    return lemmatizeFr(word);
-  }
+  if (currentLanguage === 'fr') return lemmatizeFr(word);
+  if (currentLanguage === 'es') return lemmatizeEs(word);
   return lemmatizeEn(word);
 }

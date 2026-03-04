@@ -15,6 +15,7 @@
 | F-09 | [Copy & Download](F-09-copy-download.md) | `done` | Copy or download word lists as plain text |
 | F-10 | [French Language Support](F-10-french-language.md) | `done` | Language selector with French CEFR word list and lemmatizer |
 | F-11 | [CEFR Vocabulary Levels](F-11-cefr-vocabulary-levels.md) | `done` | Replace numeric threshold with A1–C2 CEFR level selector backed by EFLLex data |
+| F-12 | [Spanish Language Support](F-12-spanish-language.md) | `done` | Language selector with Spanish CEFR word list and lemmatizer |
 
 <!-- Add new features here -->
 

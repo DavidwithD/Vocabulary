@@ -193,7 +193,7 @@ const observer = new MutationObserver((mutations) => {
 
 // Load words from storage and start highlighting
 chrome.storage.local.get({
-  words: null, words_en: null, words_fr: [],
+  words: null, words_en: null, words_fr: [], words_es: [],
   language: DEFAULT_LANGUAGE,
   cefrLevel: null, commonWordThreshold: null,
   highlightEnabled: true
@@ -224,14 +224,11 @@ chrome.storage.local.get({
   highlightEnabled = data.highlightEnabled;
   if (highlightEnabled) {
     highlightWords(document.body);
-  } else {
-    observer.disconnect();
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 });
 
-if (highlightEnabled) {
-  observer.observe(document.body, { childList: true, subtree: true });
-}
+// Observer is started inside the storage callback below (after highlightEnabled is known)
 
 // Re-highlight when word list or settings change
 chrome.storage.onChanged.addListener((changes, area) => {

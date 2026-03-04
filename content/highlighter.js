@@ -39,7 +39,7 @@ function removeHighlights(root) {
  * Collect text nodes from `root` that need highlighting.
  */
 function collectTextNodes(root) {
-  if (typeof CEFR_WORDS === 'undefined' && typeof CEFR_WORDS_FR === 'undefined') return [];
+  if (typeof CEFR_WORDS === 'undefined' && typeof CEFR_WORDS_FR === 'undefined' && typeof CEFR_WORDS_ES === 'undefined') return [];
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -74,7 +74,7 @@ function processTextNode(textNode) {
 
   tokens.forEach(word => {
     if (isWordToken(word)) {
-      if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème)$/i.test(word)) {
+      if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(word)) {
         fragment.appendChild(document.createTextNode(word));
         return;
       }
@@ -170,7 +170,7 @@ function wrapWordInTextNodes(root, targetLemma) {
 
     const fragment = document.createDocumentFragment();
     tokens.forEach(w => {
-      if (isWordToken(w) && !/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème)$/i.test(w) && lemmatize(w) === targetLemma) {
+      if (isWordToken(w) && !/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(w) && lemmatize(w) === targetLemma) {
         const span = document.createElement('span');
         span.textContent = w;
         span.className = LEARNING_CLASS;

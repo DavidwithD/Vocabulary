@@ -37,6 +37,8 @@ function getWordsKey() {
 function buildCommonWordsSet(cefrLevel) {
   const source = currentLanguage === 'fr'
     ? (typeof CEFR_WORDS_FR !== 'undefined' ? CEFR_WORDS_FR : null)
+    : currentLanguage === 'es'
+    ? (typeof CEFR_WORDS_ES !== 'undefined' ? CEFR_WORDS_ES : null)
     : (typeof CEFR_WORDS !== 'undefined' ? CEFR_WORDS : null);
   if (!source) return;
 
