@@ -10,6 +10,12 @@ common-words-raw.txt
 common-words-3000.json
 octanove-vocabulary-profile-c1c2-1.0.csv
 
+# Source data files (input word lists, corpora)
+sources/
+
+# CEFR analysis intermediate data
+scripts/cefr-analysis/data/
+
 # Keep the generated libraries
 !compromise.min.js
 !cefr-words.js

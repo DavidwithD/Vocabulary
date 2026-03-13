@@ -1,13 +1,17 @@
 const fs = require('fs');
 const https = require('https');
 
-const DATA_FILE = 'scripts/cefr-analysis/data/10K_cefr_analysis.json';
-const OUTPUT_FILE = 'scripts/cefr-analysis/data/offlist_cefr_results_v2.json';
+const DATA_FILE = 'scripts/cefr-analysis/data/cefr_analysis.json';
+const OUTPUT_FILE = 'scripts/cefr-analysis/data/offlist_results.json';
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 500;
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const TRUSTED_SOURCES = ['Cambridge Dictionary', "Oxford Learner's", 'British Council'];
+const TRUSTED_SOURCES = [
+  'Cambridge Dictionary',
+  "Oxford Learner's",
+  'British Council',
+];
 
 function parseSourceLevels(html) {
   const sources = {};
@@ -19,7 +23,9 @@ function parseSourceLevels(html) {
     const sourceName = nameMatch[1].trim();
     if (!TRUSTED_SOURCES.includes(sourceName)) continue;
     // Only match level within this card (not crossing into next card)
-    const levelMatch = card.match(/<div class="display-6 fw-bold mb-2">\s*<span[^>]*>(\w+)<\/span>/);
+    const levelMatch = card.match(
+      /<div class="display-6 fw-bold mb-2">\s*<span[^>]*>(\w+)<\/span>/,
+    );
     if (levelMatch && CEFR_LEVELS.includes(levelMatch[1])) {
       sources[sourceName] = levelMatch[1];
     }
@@ -56,7 +62,7 @@ function lookupWord(word) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(postData),
-        'Referer': 'https://cefrlookup.com/',
+        Referer: 'https://cefrlookup.com/',
       },
     };
 
@@ -70,7 +76,9 @@ function lookupWord(word) {
       });
     });
 
-    req.on('error', (err) => resolve({ word, level: null, sources: {}, error: err.message }));
+    req.on('error', (err) =>
+      resolve({ word, level: null, sources: {}, error: err.message }),
+    );
     req.write(postData);
     req.end();
   });
@@ -95,7 +103,9 @@ async function main() {
   const words = offList.slice(0, LIMIT).filter((w) => results[w] === undefined);
 
   const total = words.length;
-  console.log(`Looking up ${total} words (${Object.keys(results).length} cached, batch: ${BATCH_SIZE}, trusted sources: ${TRUSTED_SOURCES.join(', ')})...`);
+  console.log(
+    `Looking up ${total} words (${Object.keys(results).length} cached, batch: ${BATCH_SIZE}, trusted sources: ${TRUSTED_SOURCES.join(', ')})...`,
+  );
 
   let done = 0;
   for (let i = 0; i < words.length; i += BATCH_SIZE) {
@@ -107,11 +117,15 @@ async function main() {
         const { word, level, sources, error } = result.value;
         results[word] = { level, sources };
         done++;
-        const srcInfo = Object.entries(sources).map(([s, l]) => `${s}:${l}`).join(', ');
+        const srcInfo = Object.entries(sources)
+          .map(([s, l]) => `${s}:${l}`)
+          .join(', ');
         if (error) {
           console.log(`  [${done}/${total}] ${word} — ERROR: ${error}`);
         } else {
-          console.log(`  [${done}/${total}] ${word} → ${level || 'Off-List'} (${srcInfo || 'no sources'})`);
+          console.log(
+            `  [${done}/${total}] ${word} → ${level || 'Off-List'} (${srcInfo || 'no sources'})`,
+          );
         }
       }
     }
@@ -126,7 +140,9 @@ async function main() {
   // Summary
   const all = Object.values(results);
   const found = all.filter((v) => v.level !== null);
-  console.log(`\nDone. ${found.length} words with CEFR levels out of ${all.length} total.`);
+  console.log(
+    `\nDone. ${found.length} words with CEFR levels out of ${all.length} total.`,
+  );
   console.log('Breakdown:');
   const counts = {};
   for (const { level } of found) {
@@ -137,4 +153,6 @@ async function main() {
   }
 }
 
-main();
+module.exports = main;
+
+if (require.main === module) main();
