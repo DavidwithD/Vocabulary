@@ -14,6 +14,15 @@ function isWordToken(token) {
   return WORD_CHAR_RE.test(token);
 }
 
+// Skip numbers, ordinals, single-letter words, and non-applicable scripts per language
+function shouldSkipWord(word) {
+  if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(word)) return true;
+  if (word.length <= 1) return true;
+  if (currentLanguage === 'en' && !/^[a-zA-Z]+$/.test(word)) return true;
+  if ((currentLanguage === 'fr' || currentLanguage === 'es') && !/^[a-zA-ZÀ-ÖØ-öø-ÿ]+$/.test(word)) return true;
+  return false;
+}
+
 /**
  * Remove all previously applied highlights, restoring original text nodes.
  */
@@ -74,7 +83,7 @@ function processTextNode(textNode) {
 
   tokens.forEach(word => {
     if (isWordToken(word)) {
-      if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(word)) {
+      if (shouldSkipWord(word)) {
         fragment.appendChild(document.createTextNode(word));
         return;
       }
@@ -165,12 +174,12 @@ function wrapWordInTextNodes(root, targetLemma) {
 
     const tokens = splitIntoTokens(text);
     // Quick check: does this node contain the target word?
-    const hasTarget = tokens.some(w => isWordToken(w) && lemmatize(w) === targetLemma);
+    const hasTarget = tokens.some(w => isWordToken(w) && !shouldSkipWord(w) && lemmatize(w) === targetLemma);
     if (!hasTarget) return;
 
     const fragment = document.createDocumentFragment();
     tokens.forEach(w => {
-      if (isWordToken(w) && !/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(w) && lemmatize(w) === targetLemma) {
+      if (isWordToken(w) && !shouldSkipWord(w) && lemmatize(w) === targetLemma) {
         const span = document.createElement('span');
         span.textContent = w;
         span.className = LEARNING_CLASS;

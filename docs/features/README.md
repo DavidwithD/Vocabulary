@@ -16,6 +16,7 @@
 | F-10 | [French Language Support](F-10-french-language.md) | `done` | Language selector with French CEFR word list and lemmatizer |
 | F-11 | [CEFR Vocabulary Levels](F-11-cefr-vocabulary-levels.md) | `done` | Replace numeric threshold with A1–C2 CEFR level selector backed by EFLLex data |
 | F-12 | [Spanish Language Support](F-12-spanish-language.md) | `done` | Language selector with Spanish CEFR word list and lemmatizer |
+| F-13 | [Word Filtering](F-13-word-filtering.md) | `in-progress` | Skip single-letter tokens and non-Latin characters per language |
 
 <!-- Add new features here -->
 
