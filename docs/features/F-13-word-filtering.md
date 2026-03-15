@@ -9,7 +9,7 @@ The highlighter picks up tokens that are not meaningful English words:
 
 ## Solution
 
-Add a `shouldSkipWord(word)` guard in `content/highlighter.js` that rejects a token before it reaches lemmatization or classification:
+Add a `shouldSkipWord(word)` guard in `src/content/highlighter.ts` that rejects a token before it reaches lemmatization or classification:
 
 1. **Length check** — skip any token with `word.length <= 1`.
 2. **Script check** (per language):
@@ -22,24 +22,24 @@ The guard applies in both `processTextNode` and `wrapWordInTextNodes`. Skipped t
 
 ## Details
 
-- The filter runs *after* `isWordToken()` and the existing number/ordinal check, *before* `lemmatize()` — so it avoids unnecessary NLP calls on tokens that will be discarded.
+- The filter runs _after_ `isWordToken()` and the existing number/ordinal check, _before_ `lemmatize()` — so it avoids unnecessary NLP calls on tokens that will be discarded.
 - No changes to storage, popup, or word sets.
 - No new user-facing settings — the filtering is automatic.
 
 ### Examples
 
-| Token | Language | Result |
-|---|---|---|
-| `a` | en | skipped (single letter) |
-| `I` | en | skipped (single letter) |
-| `Þ` | en | skipped (single letter + non-Latin) |
-| `ˈdʌbəl` | en | skipped (non-Latin characters) |
-| `けんとう` | en | skipped (non-Latin characters) |
-| `running` | en | processed normally |
-| `café` | fr | processed normally (Latin + accents) |
-| `niño` | es | processed normally (Latin + accents) |
-| `けんとう` | fr | skipped (non-Latin characters) |
-| `検討` | es | skipped (non-Latin characters) |
+| Token      | Language | Result                               |
+| ---------- | -------- | ------------------------------------ |
+| `a`        | en       | skipped (single letter)              |
+| `I`        | en       | skipped (single letter)              |
+| `Þ`        | en       | skipped (single letter + non-Latin)  |
+| `ˈdʌbəl`   | en       | skipped (non-Latin characters)       |
+| `けんとう` | en       | skipped (non-Latin characters)       |
+| `running`  | en       | processed normally                   |
+| `café`     | fr       | processed normally (Latin + accents) |
+| `niño`     | es       | processed normally (Latin + accents) |
+| `けんとう` | fr       | skipped (non-Latin characters)       |
+| `検討`     | es       | skipped (non-Latin characters)       |
 
 ## Dependencies
 

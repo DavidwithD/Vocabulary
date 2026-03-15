@@ -10,12 +10,12 @@ Adding French language support requires lemmatizing French words on web pages ba
 
 ## Options Considered
 
-| Option | Pros | Cons |
-|---|---|---|
-| **node-lefff** (LEFFF dictionary lookup) | Comprehensive coverage of French morphology; based on well-known LEFFF lexicon | Node.js package, unclear browser compatibility; dictionary file likely very large; LGPL license |
-| **nlp-js-tools-french** | Includes tokenizer, POS tagger, lemmatizer, stemmer | Large package; unclear browser/extension compatibility; may be overkill |
-| **Pre-expanded word list** (generate all inflected forms at build time) | No runtime lemmatizer needed; simple Set lookup | Massively inflates word list size (each verb has 50+ forms); user-added words still need lemmatization |
-| **Rule-based lemmatizer** | Small footprint; no dependencies; fast; covers majority of common patterns | Incomplete coverage; some irregular forms will be missed |
+| Option                                                                  | Pros                                                                           | Cons                                                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| **node-lefff** (LEFFF dictionary lookup)                                | Comprehensive coverage of French morphology; based on well-known LEFFF lexicon | Node.js package, unclear browser compatibility; dictionary file likely very large; LGPL license        |
+| **nlp-js-tools-french**                                                 | Includes tokenizer, POS tagger, lemmatizer, stemmer                            | Large package; unclear browser/extension compatibility; may be overkill                                |
+| **Pre-expanded word list** (generate all inflected forms at build time) | No runtime lemmatizer needed; simple Set lookup                                | Massively inflates word list size (each verb has 50+ forms); user-added words still need lemmatization |
+| **Rule-based lemmatizer**                                               | Small footprint; no dependencies; fast; covers majority of common patterns     | Incomplete coverage; some irregular forms will be missed                                               |
 
 ## Decision
 
@@ -31,8 +31,8 @@ This approach is pragmatic for a Chrome extension: zero dependencies, small file
 
 ## Consequences
 
-- New file: `content/lemmatizer-fr.js` (~300 lines, mostly the irregular verb table)
-- `content/lemmatizer.js` dispatches to English or French lemmatizer based on `currentLanguage`
+- New file: `src/content/lemmatizer-fr.ts` (~300 lines, mostly the irregular verb table)
+- `src/content/lemmatizer.ts` dispatches to English or French lemmatizer based on `currentLanguage`
 - Each language has its own lemma cache (`lemmaCache` for English, `lemmaCacheFr` for French)
 - Some uncommon irregular verb forms will not lemmatize correctly — they will be treated as unfamiliar words, which is acceptable (user can still click to add them)
 - Coverage can be improved iteratively by expanding the irregular table or adding more suffix rules

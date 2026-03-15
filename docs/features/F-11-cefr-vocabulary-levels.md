@@ -23,13 +23,16 @@ CEFR (Common European Framework of Reference for Languages) is the international
 Two open datasets are merged into a single generated file per language:
 
 **English (`data/cefr-words.js`):**
+
 - [EFLLex](https://cental.uclouvain.be/cefrlex/efllex/) (UCLouvain, CC BY-NC-SA 4.0) — 15,280 lemmas, A1–C1, with normalized frequency per level per textbook/resource
 - [Octanove Vocabulary Profile](https://github.com/openlanguageprofiles/olp-en-cefrj) (CC BY-SA 4.0) — ~1,000 entries at C1/C2, used to supplement C2 coverage
 
 **French (`data/cefr-words-fr.js`):**
+
 - FLELex (UCLouvain, same project) — French equivalent of EFLLex
 
 **Spanish (`data/cefr-words-es.js`):**
+
 - [ELELex](https://cental.uclouvain.be/cefrlex/elelex/) (UCLouvain, CC BY-NC-SA 4.0) — 14,290 lexical entries, A1–C1
 
 Combined English dataset: **10,637 unique words** across all levels.
@@ -70,6 +73,7 @@ npm run build:cefr
 ```
 
 Requires the source files in `sources/`:
+
 - `sources/EFLLex.tsv` (English)
 - `sources/octanove-vocabulary-profile-c1c2-1.0.csv` (English C2 supplement)
 - `sources/FLELex.csv` (French)
@@ -89,13 +93,13 @@ Default: `"B2"`. Replaces the old `commonWordThreshold` numeric key.
 
 **Migration:** On first load after update, if `commonWordThreshold` exists but `cefrLevel` does not, the old value is converted automatically:
 
-| Old threshold | → | CEFR level |
-|---|---|---|
-| ≤ 1,000 | → | A2 |
-| ≤ 2,000 | → | B1 |
-| ≤ 3,000 | → | B2 |
-| ≤ 5,000 | → | C1 |
-| > 5,000 | → | C2 |
+| Old threshold | →   | CEFR level |
+| ------------- | --- | ---------- |
+| ≤ 1,000       | →   | A2         |
+| ≤ 2,000       | →   | B1         |
+| ≤ 3,000       | →   | B2         |
+| ≤ 5,000       | →   | C1         |
+| > 5,000       | →   | C2         |
 
 The old key is removed from storage after migration.
 
@@ -111,20 +115,20 @@ Changing the level saves to storage immediately. All open tabs rebuild their `CO
 
 ### Files Changed
 
-| File | Change |
-|---|---|
-| `data/cefr-words.js` | New — CEFR-organized word data (replaces `common-words.js`) |
-| `data/cefr-words-fr.js` | New — French CEFR word data |
-| `data/cefr-words-es.js` | New — Spanish CEFR word data |
-| `scripts/build-cefr-words.js` | New — build script for English data |
-| `scripts/build-cefr-words-fr.js` | New — build script for French data |
-| `scripts/build-cefr-words-es.js` | New — build script for Spanish data |
-| `content/state.js` | `DEFAULT_CEFR_LEVEL`, rewritten `buildCommonWordsSet(cefrLevel)`, `thresholdToCefrLevel()` migration helper |
-| `content/highlighter.js` | Guard updated to check `CEFR_WORDS` / `CEFR_WORDS_FR` / `CEFR_WORDS_ES` |
-| `content/interactions.js` | Storage key `cefrLevel`, migration from `commonWordThreshold` |
-| `popup/popup.html` | CEFR `<select>` dropdown replaces numeric threshold |
-| `popup/popup.js` | Binds to `cefrLevel`, includes migration logic |
-| `manifest.json` | Swapped `common-words.js` → `data/cefr-words.js` + `data/cefr-words-fr.js` + `data/cefr-words-es.js` |
+| File                             | Change                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `data/cefr-words.js`             | New — CEFR-organized word data (replaces `common-words.js`)                                                 |
+| `data/cefr-words-fr.js`          | New — French CEFR word data                                                                                 |
+| `data/cefr-words-es.js`          | New — Spanish CEFR word data                                                                                |
+| `scripts/build-cefr-words.js`    | New — build script for English data                                                                         |
+| `scripts/build-cefr-words-fr.js` | New — build script for French data                                                                          |
+| `scripts/build-cefr-words-es.js` | New — build script for Spanish data                                                                         |
+| `src/content/state.ts`           | `DEFAULT_CEFR_LEVEL`, rewritten `buildCommonWordsSet(cefrLevel)`, `thresholdToCefrLevel()` migration helper |
+| `src/content/highlighter.ts`     | Guard updated to check `CEFR_WORDS` / `CEFR_WORDS_FR` / `CEFR_WORDS_ES`                                     |
+| `src/content/interactions.ts`    | Storage key `cefrLevel`, migration from `commonWordThreshold`                                               |
+| `popup/popup.html`               | CEFR `<select>` dropdown replaces numeric threshold                                                         |
+| `src/popup/popup.ts`             | Binds to `cefrLevel`, includes migration logic                                                              |
+| `manifest.json`                  | Swapped `common-words.js` → `data/cefr-words.js` + `data/cefr-words-fr.js` + `data/cefr-words-es.js`        |
 
 ## Dependencies
 

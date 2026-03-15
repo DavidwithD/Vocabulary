@@ -24,7 +24,7 @@ ELELex column format differs from FLELex/EFLLex: columns are quoted and named `l
 
 ### Spanish Lemmatizer
 
-Rule-based lemmatizer in `content/lemmatizer-es.js`:
+Rule-based lemmatizer in `src/content/lemmatizer-es.ts`:
 
 - **Irregular verb table**: ~15 most common verbs (ser, estar, haber, tener, ir, hacer, poder, querer, decir, saber, venir, poner, salir, dar, ver, conocer, conducir, traer, oír, caer)
 - **Verb conjugation rules** for three groups:
@@ -36,23 +36,24 @@ Rule-based lemmatizer in `content/lemmatizer-es.js`:
 
 ### Ordinal Number Handling
 
-Spanish ordinals use º/ª (1º, 2ª). The number pattern in `content/highlighter.js` was extended to exclude these from highlighting.
+Spanish ordinals use º/ª (1º, 2ª). The number pattern in `src/content/highlighter.ts` was extended to exclude these from highlighting.
 
 ### Separate Word Lists
 
 Each language has its own storage key:
+
 - `words_en` — English
 - `words_fr` — French
 - `words_es` — Spanish
 
 ### Files
 
-| File | Role |
-|---|---|
-| `data/cefr-words-es.js` | Spanish CEFR word list (generated) |
-| `content/lemmatizer-es.js` | Rule-based Spanish lemmatizer |
-| `scripts/build-cefr-words-es.js` | Build script for Spanish word list |
-| `sources/ELELex.tsv` | Source data from UCLouvain (gitignored) |
+| File                             | Role                                    |
+| -------------------------------- | --------------------------------------- |
+| `data/cefr-words-es.js`          | Spanish CEFR word list (generated)      |
+| `src/content/lemmatizer-es.ts`   | Rule-based Spanish lemmatizer           |
+| `scripts/build-cefr-words-es.js` | Build script for Spanish word list      |
+| `sources/ELELex.tsv`             | Source data from UCLouvain (gitignored) |
 
 ### Limitations
 

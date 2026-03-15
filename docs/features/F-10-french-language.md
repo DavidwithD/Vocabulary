@@ -22,7 +22,7 @@ A `<select>` dropdown in the popup settings, above the highlight toggle. Stored 
 
 ### French Lemmatizer
 
-Rule-based lemmatizer in `content/lemmatizer-fr.js` (see [ADR-002](../decisions/002-french-lemmatizer.md)):
+Rule-based lemmatizer in `src/content/lemmatizer-fr.ts` (see [ADR-002](../decisions/002-french-lemmatizer.md)):
 
 - **Irregular verb table**: ~20 most common verbs (être, avoir, aller, faire, pouvoir, vouloir, savoir, voir, venir, devoir, dire, prendre, mettre, tenir, connaître, croire, écrire, lire, partir, mourir, naître, ouvrir, suivre, recevoir, boire, conduire, plaire)
 - **Verb conjugation rules**: -er group (present, imperfect, future, conditional, past participle), -ir group (-issons/-issez/-issent patterns)
@@ -31,11 +31,12 @@ Rule-based lemmatizer in `content/lemmatizer-fr.js` (see [ADR-002](../decisions/
 
 ### Unicode Word Boundaries
 
-Replaced `\b` and `\w` with Unicode-aware `\p{L}` regex in `content/highlighter.js`. This handles accented characters correctly for French and also improves English handling for edge cases (e.g., accented names).
+Replaced `\b` and `\w` with Unicode-aware `\p{L}` regex in `src/content/highlighter.ts`. This handles accented characters correctly for French and also improves English handling for edge cases (e.g., accented names).
 
 ### Separate Word Lists
 
 Each language has its own storage key:
+
 - `words_en` — English word list
 - `words_fr` — French word list
 
@@ -43,12 +44,12 @@ Existing `words` data is auto-migrated to `words_en` on first load.
 
 ### Files
 
-| File | Role |
-|---|---|
-| `cefr-words-fr.js` | French CEFR word list (generated) |
-| `content/lemmatizer-fr.js` | Rule-based French lemmatizer |
+| File                             | Role                              |
+| -------------------------------- | --------------------------------- |
+| `cefr-words-fr.js`               | French CEFR word list (generated) |
+| `content/lemmatizer-fr.js`       | Rule-based French lemmatizer      |
 | `scripts/build-cefr-words-fr.js` | Build script for French word list |
-| `FLELex.csv` | Source data from UCLouvain |
+| `FLELex.csv`                     | Source data from UCLouvain        |
 
 ### Limitations
 

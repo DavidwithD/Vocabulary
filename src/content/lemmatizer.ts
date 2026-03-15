@@ -1,22 +1,26 @@
 // ============================================================
-// Lemmatization — dispatches to English (compromise.js) or French (rule-based)
+// Lemmatization — dispatches to English (compromise.js) or French/Spanish (rule-based)
 // ============================================================
+
+import { currentLanguage } from './state';
+import { lemmatizeFr } from './lemmatizer-fr';
+import { lemmatizeEs } from './lemmatizer-es';
 
 /**
  * Cache for English lemmatization results.
  * Avoids redundant compromise.js NLP calls for repeated words.
  */
-const lemmaCache = new Map();
+const lemmaCache = new Map<string, string>();
 
 /**
  * Lemmatize a word using compromise.js (English) and return its base form.
  * Results are cached for performance.
  * Also handles contractions (e.g., "haven't" → "have").
  */
-function lemmatizeEn(word) {
+function lemmatizeEn(word: string): string {
   if (!word) return '';
   const lower = word.toLowerCase();
-  if (lemmaCache.has(lower)) return lemmaCache.get(lower);
+  if (lemmaCache.has(lower)) return lemmaCache.get(lower)!;
 
   if (typeof nlp !== 'function') {
     lemmaCache.set(lower, lower);
@@ -24,7 +28,7 @@ function lemmatizeEn(word) {
   }
 
   const doc = nlp(word);
-  let result;
+  let result: string;
 
   // For verbs, get the infinitive form
   const verbs = doc.verbs();
@@ -48,7 +52,7 @@ function lemmatizeEn(word) {
 /**
  * Dispatch lemmatization to the correct language handler.
  */
-function lemmatize(word) {
+export function lemmatize(word: string): string {
   if (currentLanguage === 'fr') return lemmatizeFr(word);
   if (currentLanguage === 'es') return lemmatizeEs(word);
   return lemmatizeEn(word);

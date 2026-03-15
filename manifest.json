@@ -20,7 +20,13 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["vendor/compromise.min.js", "data/cefr-words.js", "data/cefr-words-fr.js", "data/cefr-words-es.js", "content/state.js", "content/lemmatizer-fr.js", "content/lemmatizer-es.js", "content/lemmatizer.js", "content/highlighter.js", "content/interactions.js"],
+      "js": [
+        "vendor/compromise.min.js",
+        "data/cefr-words.js",
+        "data/cefr-words-fr.js",
+        "data/cefr-words-es.js",
+        "dist/content.bundle.js"
+      ],
       "run_at": "document_idle"
     }
   ]

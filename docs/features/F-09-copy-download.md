@@ -38,7 +38,7 @@ Buttons are hidden when the active list is empty.
 
 - `popup.html` — `.list-toolbar` wrapper with `#wordCount`, `#copyBtn`, `#downloadBtn`
 - `styles.css` — `.list-toolbar`, `.list-actions`, `.action-btn` styles
-- `popup.js` — `getActiveWords()` helper, click handlers for copy and download, visibility toggle in `renderWords()`
+- `src/popup/popup.ts` — `getActiveWords()` helper, click handlers for copy and download, visibility toggle in `renderWords()`
 
 ## Dependencies
 

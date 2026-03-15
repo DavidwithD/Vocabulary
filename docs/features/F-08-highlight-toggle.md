@@ -53,7 +53,7 @@ When the toggle is switched back on:
 
 - `popup.html` — toggle switch markup
 - `styles.css` — `.switch` / `.slider` toggle component styles
-- `popup.js` — reads and writes `highlightEnabled` on toggle change
+- `src/popup/popup.ts` — reads and writes `highlightEnabled` on toggle change
 - `content.js` — `highlightEnabled` state variable, guards on init, click handlers, storage listener, and MutationObserver
 
 ## Dependencies

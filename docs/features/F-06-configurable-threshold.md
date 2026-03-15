@@ -15,11 +15,13 @@ Make the common words threshold configurable from the popup, with a dropdown off
 `common-words.js` now exports a frequency-ranked array instead of a flat Set:
 
 Before:
+
 ```js
 const COMMON_WORDS = new Set(['the', 'of', ...]);  // 3,000 words
 ```
 
 After:
+
 ```js
 const COMMON_WORDS_RANKED = ['the', 'of', ...];  // ~9,894 words, most frequent first
 ```
@@ -50,13 +52,13 @@ Changing the value saves to storage immediately. The content script listens for 
 
 ### Files Changed
 
-| File | Change |
-|---|---|
-| `common-words.js` | `Set` → frequency-ranked array (~9,894 words) |
-| `content.js` | Dynamic Set building from threshold; storage listener for threshold changes |
-| `popup.html` | Settings row with `<select>` dropdown |
-| `popup.js` | Load/save threshold setting |
-| `styles.css` | `.settings-row` styles |
+| File                 | Change                                                                      |
+| -------------------- | --------------------------------------------------------------------------- |
+| `common-words.js`    | `Set` → frequency-ranked array (~9,894 words)                               |
+| `content.js`         | Dynamic Set building from threshold; storage listener for threshold changes |
+| `popup.html`         | Settings row with `<select>` dropdown                                       |
+| `src/popup/popup.ts` | Load/save threshold setting                                                 |
+| `styles.css`         | `.settings-row` styles                                                      |
 
 ## Dependencies
 

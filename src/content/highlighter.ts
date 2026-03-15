@@ -2,41 +2,65 @@
 // DOM highlighting — tree walking, node processing, chunked rendering
 // ============================================================
 
+import {
+  VOCAB_CLASS,
+  UNKNOWN_CLASS,
+  LEARNING_CLASS,
+  currentLanguage,
+  COMMON_WORDS,
+  baseWordSet,
+  learningWordSet,
+  pageUnfamiliarLemmas,
+  pageLearningLemmas,
+  pageFamiliarLemmas,
+} from './state';
+import { lemmatize } from './lemmatizer';
+
 const CHUNK_SIZE = 50; // Text nodes processed per animation frame
 
 // Unicode-aware word detection: matches letters including accented characters
 const WORD_CHAR_RE = /\p{L}/u;
+
 // Split text into word and non-word tokens (Unicode-aware)
-function splitIntoTokens(text) {
+function splitIntoTokens(text: string): string[] {
   return text.match(/\p{L}+|[^\p{L}]+/gu) || [];
 }
-function isWordToken(token) {
+
+function isWordToken(token: string): boolean {
   return WORD_CHAR_RE.test(token);
 }
 
 // Skip numbers, ordinals, single-letter words, and non-applicable scripts per language
-function shouldSkipWord(word) {
+function shouldSkipWord(word: string): boolean {
   if (/^[\d.,]+$|^\d+(st|nd|rd|th|er|ère|ème|[ºª])$/i.test(word)) return true;
   if (word.length <= 1) return true;
   if (currentLanguage === 'en' && !/^[a-zA-Z]+$/.test(word)) return true;
-  if ((currentLanguage === 'fr' || currentLanguage === 'es') && !/^[a-zA-ZÀ-ÖØ-öø-ÿ]+$/.test(word)) return true;
+  if (
+    (currentLanguage === 'fr' || currentLanguage === 'es') &&
+    !/^[a-zA-ZÀ-ÖØ-öø-ÿ]+$/.test(word)
+  )
+    return true;
   return false;
 }
 
 /**
  * Remove all previously applied highlights, restoring original text nodes.
  */
-function removeHighlights(root) {
+export function removeHighlights(root: Element | Document): void {
   const vocab = root.querySelectorAll('.' + VOCAB_CLASS);
   const unknown = root.querySelectorAll('.' + UNKNOWN_CLASS);
   const learning = root.querySelectorAll('.' + LEARNING_CLASS);
 
-  [...vocab, ...unknown, ...learning].forEach(span => {
-    const text = document.createTextNode(span.textContent);
-    span.parentNode.replaceChild(text, span);
+  [...vocab, ...unknown, ...learning].forEach((span) => {
+    const text = document.createTextNode(span.textContent || '');
+    span.parentNode?.replaceChild(text, span);
   });
 
-  root.normalize(); // merge adjacent text nodes
+  if (root instanceof Element) {
+    root.normalize(); // merge adjacent text nodes
+  } else {
+    root.body?.normalize();
+  }
 
   // Reset page stats for full re-highlight
   pageUnfamiliarLemmas.clear();
@@ -47,13 +71,16 @@ function removeHighlights(root) {
 /**
  * Collect text nodes from `root` that need highlighting.
  */
-function collectTextNodes(root) {
-  if (typeof CEFR_WORDS === 'undefined' && typeof CEFR_WORDS_FR === 'undefined' && typeof CEFR_WORDS_ES === 'undefined') return [];
-
+function collectTextNodes(root: Element | Document): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
+    acceptNode(node: Node): number {
       const parent = node.parentElement;
-      if (parent && (parent.classList.contains(VOCAB_CLASS) || parent.classList.contains(UNKNOWN_CLASS) || parent.classList.contains(LEARNING_CLASS))) {
+      if (
+        parent &&
+        (parent.classList.contains(VOCAB_CLASS) ||
+          parent.classList.contains(UNKNOWN_CLASS) ||
+          parent.classList.contains(LEARNING_CLASS))
+      ) {
         return NodeFilter.FILTER_REJECT;
       }
       const tag = parent?.tagName;
@@ -61,12 +88,12 @@ function collectTextNodes(root) {
         return NodeFilter.FILTER_REJECT;
       }
       return NodeFilter.FILTER_ACCEPT;
-    }
+    },
   });
 
-  const textNodes = [];
+  const textNodes: Text[] = [];
   while (walker.nextNode()) {
-    textNodes.push(walker.currentNode);
+    textNodes.push(walker.currentNode as Text);
   }
   return textNodes;
 }
@@ -74,14 +101,14 @@ function collectTextNodes(root) {
 /**
  * Process a single text node: split into words, classify, and wrap in spans.
  */
-function processTextNode(textNode) {
+function processTextNode(textNode: Text): void {
   const text = textNode.textContent;
-  if (!text.trim()) return;
+  if (!text?.trim()) return;
 
   const tokens = splitIntoTokens(text);
   const fragment = document.createDocumentFragment();
 
-  tokens.forEach(word => {
+  tokens.forEach((word) => {
     if (isWordToken(word)) {
       if (shouldSkipWord(word)) {
         fragment.appendChild(document.createTextNode(word));
@@ -125,19 +152,19 @@ function processTextNode(textNode) {
     }
   });
 
-  textNode.parentNode.replaceChild(fragment, textNode);
+  textNode.parentNode?.replaceChild(fragment, textNode);
 }
 
 /**
  * Walk all text nodes in `root` and highlight words.
  * Processes in chunks of CHUNK_SIZE nodes per animation frame to avoid blocking.
  */
-function highlightWords(root) {
+export function highlightWords(root: Element | Document): void {
   const textNodes = collectTextNodes(root);
   if (textNodes.length === 0) return;
 
   let i = 0;
-  function processChunk() {
+  function processChunk(): void {
     const end = Math.min(i + CHUNK_SIZE, textNodes.length);
     while (i < end) {
       // Node may have been detached by a previous chunk — skip if so
@@ -156,7 +183,7 @@ function highlightWords(root) {
 /**
  * Remove old highlights, then re-apply with current word sets.
  */
-function refreshHighlighting() {
+export function refreshHighlighting(): void {
   removeHighlights(document.body);
   highlightWords(document.body);
 }
@@ -165,21 +192,31 @@ function refreshHighlighting() {
  * Walk text nodes in `root` and wrap occurrences of a specific lemma
  * as learning spans. Only touches nodes containing the target word.
  */
-function wrapWordInTextNodes(root, targetLemma) {
+export function wrapWordInTextNodes(
+  root: Element | Document,
+  targetLemma: string
+): void {
   const textNodes = collectTextNodes(root);
 
-  textNodes.forEach(textNode => {
+  textNodes.forEach((textNode) => {
     const text = textNode.textContent;
-    if (!text.trim()) return;
+    if (!text?.trim()) return;
 
     const tokens = splitIntoTokens(text);
     // Quick check: does this node contain the target word?
-    const hasTarget = tokens.some(w => isWordToken(w) && !shouldSkipWord(w) && lemmatize(w) === targetLemma);
+    const hasTarget = tokens.some(
+      (w) =>
+        isWordToken(w) && !shouldSkipWord(w) && lemmatize(w) === targetLemma
+    );
     if (!hasTarget) return;
 
     const fragment = document.createDocumentFragment();
-    tokens.forEach(w => {
-      if (isWordToken(w) && !shouldSkipWord(w) && lemmatize(w) === targetLemma) {
+    tokens.forEach((w) => {
+      if (
+        isWordToken(w) &&
+        !shouldSkipWord(w) &&
+        lemmatize(w) === targetLemma
+      ) {
         const span = document.createElement('span');
         span.textContent = w;
         span.className = LEARNING_CLASS;
@@ -192,6 +229,6 @@ function wrapWordInTextNodes(root, targetLemma) {
         fragment.appendChild(document.createTextNode(w));
       }
     });
-    textNode.parentNode.replaceChild(fragment, textNode);
+    textNode.parentNode?.replaceChild(fragment, textNode);
   });
 }

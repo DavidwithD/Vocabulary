@@ -1,65 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    <h1>Vocabulary Builder</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Vocabulary Builder</h1>
 
-    <div class="settings-row">
-      <label for="language">Language:</label>
-      <select id="language">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-      </select>
-    </div>
+      <div class="settings-row">
+        <label for="language">Language:</label>
+        <select id="language">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
 
-    <div class="settings-row">
-      <label for="highlightToggle">Highlight</label>
-      <label class="switch">
-        <input type="checkbox" id="highlightToggle" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
+      <div class="settings-row">
+        <label for="highlightToggle">Highlight</label>
+        <label class="switch">
+          <input type="checkbox" id="highlightToggle" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
 
-    <div class="settings-row">
-      <label for="cefrLevel">Your level:</label>
-      <select id="cefrLevel">
-        <option value="A1">A1 (Beginner)</option>
-        <option value="A2">A2 (Elementary)</option>
-        <option value="B1">B1 (Intermediate)</option>
-        <option value="B2">B2 (Upper Intermediate)</option>
-        <option value="C1">C1 (Advanced)</option>
-        <option value="C2">C2 (Proficiency)</option>
-      </select>
-    </div>
+      <div class="settings-row">
+        <label for="cefrLevel">Your level:</label>
+        <select id="cefrLevel">
+          <option value="A1">A1 (Beginner)</option>
+          <option value="A2">A2 (Elementary)</option>
+          <option value="B1">B1 (Intermediate)</option>
+          <option value="B2">B2 (Upper Intermediate)</option>
+          <option value="C1">C1 (Advanced)</option>
+          <option value="C2">C2 (Proficiency)</option>
+        </select>
+      </div>
 
-    <div id="pageStats" class="page-stats"></div>
+      <div id="pageStats" class="page-stats"></div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="learning">Learning <span id="learningCount">0</span></button>
-      <button class="tab" data-tab="familiar">Familiar <span id="familiarCount">0</span></button>
-    </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="learning">
+          Learning <span id="learningCount">0</span>
+        </button>
+        <button class="tab" data-tab="familiar">
+          Familiar <span id="familiarCount">0</span>
+        </button>
+      </div>
 
-    <div class="list-toolbar">
-      <div id="wordCount" class="word-count">0 words total</div>
-      <div id="listActions" class="list-actions">
-        <button id="copyBtn" class="action-btn" title="Copy to clipboard">&#x2750;</button>
-        <button id="downloadBtn" class="action-btn" title="Download as text file">&#x2B07; </button>
+      <div class="list-toolbar">
+        <div id="wordCount" class="word-count">0 words total</div>
+        <div id="listActions" class="list-actions">
+          <button id="copyBtn" class="action-btn" title="Copy to clipboard">
+            &#x2750;
+          </button>
+          <button
+            id="downloadBtn"
+            class="action-btn"
+            title="Download as text file"
+          >
+            &#x2B07;
+          </button>
+        </div>
+      </div>
+
+      <ul id="learningList" class="word-section"></ul>
+      <ul id="familiarList" class="word-section" style="display: none"></ul>
+
+      <div id="emptyState" class="empty-state">
+        No words yet. Start adding some!
       </div>
     </div>
 
-    <ul id="learningList" class="word-section"></ul>
-    <ul id="familiarList" class="word-section" style="display: none;"></ul>
-
-    <div id="emptyState" class="empty-state">
-      No words yet. Start adding some!
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+    <script src="../dist/popup.bundle.js"></script>
+  </body>
 </html>
