@@ -53,3 +53,29 @@ export interface WordSetsResult {
   familiar: Set<string>;
   learning: Set<string>;
 }
+
+/** Coarse POS categories for cache keys (reduces fragmentation) */
+export type CoarsePOS = 'Noun' | 'Verb' | 'Adjective' | 'Adverb' | 'Other';
+
+/** Lemma cache entry with POS-aware lemmatization */
+export interface LemmaCacheData {
+  /** Map of "word:POS" -> lemma */
+  entries: Record<string, string>;
+}
+
+/** Extended storage data with lemma cache */
+export interface StorageDataWithCache extends StorageData {
+  lemmaCache_en?: LemmaCacheData;
+}
+
+/** Result of sentence-level lemmatization */
+export interface LemmatizedTerm {
+  /** Original text */
+  text: string;
+  /** Lemmatized form */
+  lemma: string;
+  /** Coarse POS category */
+  pos: CoarsePOS;
+  /** Whether this is a word token (vs punctuation/whitespace) */
+  isWord: boolean;
+}

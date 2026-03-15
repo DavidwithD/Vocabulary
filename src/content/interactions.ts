@@ -140,7 +140,7 @@ function demoteToLearning(lemma: string): void {
  * Uses a targeted DOM walk to find and wrap only matching text nodes,
  * avoiding a full-page refresh.
  */
-function addCommonWordAsLearning(word: string): void {
+function addCommonWordAsLearning(word: string, contextNode?: Node): void {
   const lemma = lemmatize(word);
   learningWordSet.add(lemma);
 
@@ -157,8 +157,8 @@ function addCommonWordAsLearning(word: string): void {
     chrome.storage.local.set({ [key]: updatedWords });
   });
 
-  // Targeted update: walk text nodes and wrap only this word's occurrences
-  wrapWordInTextNodes(document.body, lemma);
+  // Targeted update: immediate local block, then background for rest
+  wrapWordInTextNodes(document.body, lemma, contextNode);
 }
 
 // ============================================================
@@ -205,7 +205,8 @@ document.addEventListener('dblclick', (e: MouseEvent) => {
     if (selectedText && /^\p{L}+$/u.test(selectedText)) {
       const lemma = lemmatize(selectedText);
       if (COMMON_WORDS.has(lemma)) {
-        addCommonWordAsLearning(selectedText);
+        // Pass the target element for context-aware highlighting
+        addCommonWordAsLearning(selectedText, target);
         selection?.removeAllRanges();
       }
     }
@@ -293,72 +294,88 @@ chrome.storage.local.get(
 
 // Re-highlight when word list or settings change
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local') return;
+  try {
+    if (area !== 'local') return;
 
-  // Highlight toggle changed from popup
-  if (changes.highlightEnabled) {
-    setHighlightEnabled(changes.highlightEnabled.newValue);
-    if (highlightEnabled) {
-      highlightWords(document.body);
-      observer.observe(document.body, { childList: true, subtree: true });
-    } else {
-      removeHighlights(document.body);
-      observer.disconnect();
-    }
-    return;
-  }
-
-  // Language changed from popup — switch everything and re-highlight
-  if (changes.language) {
-    setCurrentLanguage(changes.language.newValue || DEFAULT_LANGUAGE);
-    // Rebuild common words for the new language
-    chrome.storage.local.get({ cefrLevel: DEFAULT_CEFR_LEVEL }, (data) => {
-      buildCommonWordsSet(data.cefrLevel || DEFAULT_CEFR_LEVEL);
-      // Load word list for the new language
-      const wordsKey = getWordsKey();
-      chrome.storage.local.get({ [wordsKey]: [] }, (wordData) => {
-        const { familiar, learning } = buildWordSets(wordData[wordsKey]);
-        setBaseWordSet(familiar);
-        setLearningWordSet(learning);
-        if (highlightEnabled) refreshHighlighting();
-      });
-    });
-    return;
-  }
-
-  // CEFR level changed from popup — rebuild common words Set and refresh
-  if (changes.cefrLevel) {
-    buildCommonWordsSet(changes.cefrLevel.newValue || DEFAULT_CEFR_LEVEL);
-    if (highlightEnabled) refreshHighlighting();
-    return;
-  }
-
-  // Word list changed for the current language
-  const wordsKey = getWordsKey();
-  if (changes[wordsKey]) {
-    // If update happened less than 500ms ago, it was from this page - skip refresh
-    const now = Date.now();
-    if (now - lastLocalUpdate < 500) {
+    // Highlight toggle changed from popup
+    if (changes.highlightEnabled) {
+      setHighlightEnabled(changes.highlightEnabled.newValue);
+      if (highlightEnabled) {
+        highlightWords(document.body);
+        observer.observe(document.body, { childList: true, subtree: true });
+      } else {
+        removeHighlights(document.body);
+        observer.disconnect();
+      }
       return;
     }
 
-    // Update from another source (popup, another tab) - need full refresh
-    const { familiar, learning } = buildWordSets(
-      changes[wordsKey].newValue || []
-    );
-    setBaseWordSet(familiar);
-    setLearningWordSet(learning);
-    if (highlightEnabled) refreshHighlighting();
+    // Language changed from popup — switch everything and re-highlight
+    if (changes.language) {
+      setCurrentLanguage(changes.language.newValue || DEFAULT_LANGUAGE);
+      // Rebuild common words for the new language
+      chrome.storage.local.get({ cefrLevel: DEFAULT_CEFR_LEVEL }, (data) => {
+        try {
+          buildCommonWordsSet(data.cefrLevel || DEFAULT_CEFR_LEVEL);
+          // Load word list for the new language
+          const wordsKey = getWordsKey();
+          chrome.storage.local.get({ [wordsKey]: [] }, (wordData) => {
+            try {
+              const { familiar, learning } = buildWordSets(wordData[wordsKey]);
+              setBaseWordSet(familiar);
+              setLearningWordSet(learning);
+              if (highlightEnabled) refreshHighlighting();
+            } catch {
+              // Extension context invalidated
+            }
+          });
+        } catch {
+          // Extension context invalidated
+        }
+      });
+      return;
+    }
+
+    // CEFR level changed from popup — rebuild common words Set and refresh
+    if (changes.cefrLevel) {
+      buildCommonWordsSet(changes.cefrLevel.newValue || DEFAULT_CEFR_LEVEL);
+      if (highlightEnabled) refreshHighlighting();
+      return;
+    }
+
+    // Word list changed for the current language
+    const wordsKey = getWordsKey();
+    if (changes[wordsKey]) {
+      // If update happened less than 500ms ago, it was from this page - skip refresh
+      const now = Date.now();
+      if (now - lastLocalUpdate < 500) {
+        return;
+      }
+
+      // Update from another source (popup, another tab) - need full refresh
+      const { familiar, learning } = buildWordSets(
+        changes[wordsKey].newValue || []
+      );
+      setBaseWordSet(familiar);
+      setLearningWordSet(learning);
+      if (highlightEnabled) refreshHighlighting();
+    }
+  } catch {
+    // Extension context invalidated
   }
 });
 
 // Respond to popup requests for page statistics
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === 'getPageStats') {
-    sendResponse({
-      unfamiliar: pageUnfamiliarLemmas.size,
-      learning: pageLearningLemmas.size,
-      familiar: pageFamiliarLemmas.size,
-    });
+  try {
+    if (msg.type === 'getPageStats') {
+      sendResponse({
+        unfamiliar: pageUnfamiliarLemmas.size,
+        learning: pageLearningLemmas.size,
+        familiar: pageFamiliarLemmas.size,
+      });
+    }
+  } catch {
+    // Extension context invalidated
   }
 });

@@ -35,6 +35,61 @@ interface NlpDocument {
   text(format?: 'root' | 'normal'): string;
   /** Get the length of matches */
   length: number;
+  /** Get all terms (words) with their POS tags */
+  terms(): NlpTerms;
+  /** Get adjectives in the document */
+  adjectives(): NlpDocument;
+  /** Get adverbs in the document */
+  adverbs(): NlpDocument;
+  /** Clone the document for transformation without mutating original */
+  clone(): NlpDocument;
+  /** Compute additional properties like 'root' on each term */
+  compute(operation: 'root'): NlpDocument;
+  /** Get full JSON representation of the document */
+  json(): NlpSentence[];
+}
+
+interface NlpTerms {
+  /** Convert terms to JSON format with POS tags */
+  json(): NlpTermGroup[];
+  /** Number of terms */
+  length: number;
+  /** Filter out terms matching a tag */
+  not(tag: string): NlpTerms;
+  /** Output as array of strings */
+  out(format: 'array'): string[];
+}
+
+/** A term group from compromise.js terms().json() */
+interface NlpTermGroup {
+  /** The text of this term group */
+  text: string;
+  /** Nested array of individual terms with POS info */
+  terms: NlpTerm[];
+}
+
+/** A sentence from compromise.js json() output */
+interface NlpSentence {
+  /** The text of this sentence */
+  text: string;
+  /** Array of terms in the sentence */
+  terms: NlpTerm[];
+}
+
+/** A single term from compromise.js with POS information */
+interface NlpTerm {
+  /** The original text */
+  text: string;
+  /** Normalized/lowercase text */
+  normal: string;
+  /** Root/lemma form (populated after compute('root')) */
+  root?: string;
+  /** Array of POS tags (e.g., ['Verb', 'PastTense']) */
+  tags: string[];
+  /** Pre-text (whitespace before) */
+  pre: string;
+  /** Post-text (whitespace/punctuation after) */
+  post: string;
 }
 
 interface NlpVerbs {

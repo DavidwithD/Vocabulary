@@ -31,10 +31,10 @@
   const downloadBtn = document.getElementById('downloadBtn');
   let activeTab = 'learning';
   // Tab switching
-  tabs.forEach(tab => {
+  tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
           activeTab = tab.dataset.tab;
-          tabs.forEach(t => t.classList.remove('active'));
+          tabs.forEach((t) => t.classList.remove('active'));
           tab.classList.add('active');
           learningList.style.display = activeTab === 'learning' ? '' : 'none';
           familiarList.style.display = activeTab === 'familiar' ? '' : 'none';
@@ -56,7 +56,7 @@
       familiarList.innerHTML = '';
       const learningWords = [];
       const familiarWords = [];
-      words.forEach(entry => {
+      words.forEach((entry) => {
           const status = entry.status || 'familiar';
           if (status === 'learning') {
               learningWords.push(entry);
@@ -71,10 +71,10 @@
       emptyState.style.display = words.length === 0 ? 'block' : 'none';
       const activeCount = activeTab === 'learning' ? learningWords.length : familiarWords.length;
       listActions.style.display = activeCount > 0 ? '' : 'none';
-      learningWords.forEach(entry => {
+      learningWords.forEach((entry) => {
           learningList.appendChild(createWordLi(entry, 'learning'));
       });
-      familiarWords.forEach(entry => {
+      familiarWords.forEach((entry) => {
           familiarList.appendChild(createWordLi(entry, 'familiar'));
       });
   }
@@ -108,13 +108,17 @@
       chrome.storage.local.get({ [key]: [] }, (data) => {
           let words = data[key];
           if (action === 'promote') {
-              words = words.map(e => e.word.toLowerCase() === targetWord ? { ...e, status: 'familiar' } : e);
+              words = words.map((e) => e.word.toLowerCase() === targetWord
+                  ? { ...e, status: 'familiar' }
+                  : e);
           }
           else if (action === 'demote') {
-              words = words.map(e => e.word.toLowerCase() === targetWord ? { ...e, status: 'learning' } : e);
+              words = words.map((e) => e.word.toLowerCase() === targetWord
+                  ? { ...e, status: 'learning' }
+                  : e);
           }
           else if (action === 'delete') {
-              words = words.filter(e => e.word.toLowerCase() !== targetWord);
+              words = words.filter((e) => e.word.toLowerCase() !== targetWord);
           }
           saveWords(words);
           renderWords(words);
@@ -168,7 +172,14 @@
   chrome.storage.local.get({ cefrLevel: null, commonWordThreshold: null }, (data) => {
       if (!data.cefrLevel && data.commonWordThreshold) {
           // Migrate old threshold to CEFR level
-          const map = { 1000: 'A2', 2000: 'B1', 3000: 'B2', 5000: 'C1', 7000: 'C2', 10000: 'C2' };
+          const map = {
+              1000: 'A2',
+              2000: 'B1',
+              3000: 'B2',
+              5000: 'C1',
+              7000: 'C2',
+              10000: 'C2',
+          };
           const level = map[data.commonWordThreshold] || 'B2';
           chrome.storage.local.set({ cefrLevel: level });
           chrome.storage.local.remove('commonWordThreshold');
@@ -186,8 +197,8 @@
       const key = getWordsKey();
       chrome.storage.local.get({ [key]: [] }, (data) => {
           const filtered = data[key]
-              .filter(e => (e.status || 'familiar') === activeTab)
-              .map(e => e.word);
+              .filter((e) => (e.status || 'familiar') === activeTab)
+              .map((e) => e.word);
           callback(filtered);
       });
   }
@@ -198,7 +209,9 @@
           navigator.clipboard.writeText(words.join('\n')).then(() => {
               const original = copyBtn.innerHTML;
               copyBtn.textContent = '\u2713';
-              setTimeout(() => { copyBtn.innerHTML = original; }, 1500);
+              setTimeout(() => {
+                  copyBtn.innerHTML = original;
+              }, 1500);
           });
       });
   });
@@ -226,9 +239,15 @@
               return;
           }
           pageStatsEl.innerHTML =
-              '<span class="stat"><span class="dot" style="background:#5e35b1;"></span><strong style="color:#5e35b1;">' + response.unfamiliar + '</strong><span class="label">unfamiliar</span></span>' +
-                  '<span class="stat"><span class="dot" style="background:#e65100;"></span><strong style="color:#e65100;">' + response.learning + '</strong><span class="label">learning</span></span>' +
-                  '<span class="stat"><span class="dot" style="background:#4CAF50;"></span><strong style="color:#4CAF50;">' + response.familiar + '</strong><span class="label">familiar</span></span>';
+              '<span class="stat"><span class="dot" style="background:#5e35b1;"></span><strong style="color:#5e35b1;">' +
+                  response.unfamiliar +
+                  '</strong><span class="label">unfamiliar</span></span>' +
+                  '<span class="stat"><span class="dot" style="background:#e65100;"></span><strong style="color:#e65100;">' +
+                  response.learning +
+                  '</strong><span class="label">learning</span></span>' +
+                  '<span class="stat"><span class="dot" style="background:#4CAF50;"></span><strong style="color:#4CAF50;">' +
+                  response.familiar +
+                  '</strong><span class="label">familiar</span></span>';
       });
   });
 
