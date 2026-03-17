@@ -68,14 +68,24 @@ export interface StorageDataWithCache extends StorageData {
   lemmaCache_en?: LemmaCacheData;
 }
 
-/** Result of sentence-level lemmatization */
+/** Result of sentence-level lemmatization (French/Spanish word-by-word) */
 export interface LemmatizedTerm {
   /** Original text */
   text: string;
   /** Lemmatized form */
   lemma: string;
-  /** Coarse POS category */
-  pos: CoarsePOS;
   /** Whether this is a word token (vs punctuation/whitespace) */
   isWord: boolean;
+}
+
+/** Result of English sentence-level lemmatization (compromise.js) */
+export interface LemmaMatrixTerm {
+  /** Original word text */
+  text: string;
+  /** Lemmatized form */
+  lemma: string;
+  /** Whitespace/punctuation before the word */
+  pre: string;
+  /** Whitespace/punctuation after the word */
+  post: string;
 }

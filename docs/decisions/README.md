@@ -7,6 +7,7 @@
 | [001](001-compromise-js.md) | Use compromise.js for lemmatization | 2026-02-24 | `accepted` |
 | [002](002-french-lemmatizer.md) | Rule-based French lemmatizer | 2026-02-27 | `accepted` |
 | [003](003-cefr-data-sources.md) | CEFR vocabulary data sources (EFLLex + Octanove) | 2026-03-02 | `accepted` |
+| [004](004-lemma-matrix.md) | Replace token-alignment with lemmaMatrix | 2026-03-17 | `accepted` |
 
 <!-- Add new decisions here -->
 

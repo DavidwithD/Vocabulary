@@ -24,6 +24,53 @@ declare global {
 
   /** CEFR word data for Spanish (loaded from data/cefr-words-es.js) */
   const CEFR_WORDS_ES: CefrWordData;
+
+  /** Chrome extension APIs */
+  namespace chrome {
+    namespace storage {
+      interface StorageArea {
+        get(
+          keys: string | string[] | Record<string, any> | null,
+          callback: (items: Record<string, any>) => void
+        ): void;
+        set(items: Record<string, any>, callback?: () => void): void;
+        remove(keys: string | string[], callback?: () => void): void;
+      }
+
+      const local: StorageArea;
+
+      interface StorageChange {
+        oldValue?: any;
+        newValue?: any;
+      }
+
+      namespace onChanged {
+        function addListener(
+          callback: (
+            changes: Record<string, StorageChange>,
+            areaName: string
+          ) => void
+        ): void;
+      }
+    }
+
+    namespace runtime {
+      interface MessageSender {
+        tab?: { id: number };
+        id?: string;
+      }
+
+      namespace onMessage {
+        function addListener(
+          callback: (
+            message: any,
+            sender: MessageSender,
+            sendResponse: (response?: any) => void
+          ) => boolean | void
+        ): void;
+      }
+    }
+  }
 }
 
 interface NlpDocument {

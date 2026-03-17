@@ -3,29 +3,25 @@
 // ============================================================
 
 import {
-  VOCAB_CLASS,
+  FAMILIAR_CLASS,
   UNKNOWN_CLASS,
   LEARNING_CLASS,
   currentLanguage,
   COMMON_WORDS,
-  baseWordSet,
+  familiarWordSet,
   learningWordSet,
   pageUnfamiliarLemmas,
   pageLearningLemmas,
   pageFamiliarLemmas,
+  pageCommonLemmas,
 } from './state';
-import { lemmatize, lemmatizeSentence } from './lemmatizer';
-import type { LemmatizedTerm } from '../types';
+import { lemmatizeSentence } from './lemmatizer';
+import { LemmaMatrixTerm, LemmatizedTerm } from '../types';
 
 const CHUNK_SIZE = 50; // Text nodes processed per animation frame
 
 // Unicode-aware word detection: matches letters including accented characters
 const WORD_CHAR_RE = /\p{L}/u;
-
-// Split text into word and non-word tokens (Unicode-aware)
-function splitIntoTokens(text: string): string[] {
-  return text.match(/\p{L}+|[^\p{L}]+/gu) || [];
-}
 
 function isWordToken(token: string): boolean {
   return WORD_CHAR_RE.test(token);
@@ -48,7 +44,7 @@ function shouldSkipWord(word: string): boolean {
  * Remove all previously applied highlights, restoring original text nodes.
  */
 export function removeHighlights(root: Element | Document): void {
-  const vocab = root.querySelectorAll('.' + VOCAB_CLASS);
+  const vocab = root.querySelectorAll('.' + FAMILIAR_CLASS);
   const unknown = root.querySelectorAll('.' + UNKNOWN_CLASS);
   const learning = root.querySelectorAll('.' + LEARNING_CLASS);
 
@@ -63,10 +59,11 @@ export function removeHighlights(root: Element | Document): void {
     root.body?.normalize();
   }
 
-  // Reset page stats for full re-highlight
+  // Reset page stats and node maps for full re-highlight
   pageUnfamiliarLemmas.clear();
   pageLearningLemmas.clear();
   pageFamiliarLemmas.clear();
+  pageCommonLemmas.clear();
 }
 
 // Block-level tags for finding immediate context
@@ -110,7 +107,7 @@ function collectTextNodes(root: Element | Document): Text[] {
       const parent = node.parentElement;
       if (
         parent &&
-        (parent.classList.contains(VOCAB_CLASS) ||
+        (parent.classList.contains(FAMILIAR_CLASS) ||
           parent.classList.contains(UNKNOWN_CLASS) ||
           parent.classList.contains(LEARNING_CLASS))
       ) {
@@ -147,7 +144,7 @@ function collectTextNodesExcluding(
       const parent = node.parentElement;
       if (
         parent &&
-        (parent.classList.contains(VOCAB_CLASS) ||
+        (parent.classList.contains(FAMILIAR_CLASS) ||
           parent.classList.contains(UNKNOWN_CLASS) ||
           parent.classList.contains(LEARNING_CLASS))
       ) {
@@ -175,16 +172,25 @@ type WordClass = 'familiar' | 'learning' | 'unknown' | 'common';
  * Classify a lemma based on word sets.
  */
 function classifyLemma(lemma: string): WordClass {
-  if (baseWordSet.has(lemma)) return 'familiar';
+  if (familiarWordSet.has(lemma)) return 'familiar';
   if (learningWordSet.has(lemma)) return 'learning';
   if (COMMON_WORDS.has(lemma)) return 'common';
   return 'unknown';
 }
 
 /**
+ * Create a text node with an attached lemma property for tracking.
+ */
+function createTextNode(text: string, lemma: string = ''): Text {
+  const plainText = document.createTextNode(text);
+  (plainText as any).lemma = lemma;
+  return plainText;
+}
+
+/**
  * Create a highlighted span for a word.
  */
-function createWordSpan(
+export function createWordSpan(
   text: string,
   lemma: string,
   wordClass: Exclude<WordClass, 'common'>
@@ -195,7 +201,7 @@ function createWordSpan(
 
   switch (wordClass) {
     case 'familiar':
-      span.className = VOCAB_CLASS;
+      span.className = FAMILIAR_CLASS;
       break;
     case 'learning':
       span.className = LEARNING_CLASS;
@@ -215,23 +221,94 @@ function createWordSpan(
 }
 
 /**
- * Track a lemma in page statistics.
+ * Register a node in a lemma map (get-or-create the inner Set).
+ */
+function addToLemmaMap<T>(map: Map<string, Set<T>>, lemma: string, node: T): void {
+  let set = map.get(lemma);
+  if (!set) {
+    set = new Set();
+    map.set(lemma, set);
+  }
+  set.add(node);
+}
+
+/**
+ * Track a lemma and its DOM node in the page-level maps.
  */
 function trackLemma(
   lemma: string,
-  wordClass: Exclude<WordClass, 'common'>
+  wordClass: WordClass,
+  node: HTMLSpanElement | Text
 ): void {
   switch (wordClass) {
     case 'familiar':
-      pageFamiliarLemmas.add(lemma);
+      addToLemmaMap(pageFamiliarLemmas, lemma, node as HTMLSpanElement);
       break;
     case 'learning':
-      pageLearningLemmas.add(lemma);
+      addToLemmaMap(pageLearningLemmas, lemma, node as HTMLSpanElement);
       break;
     case 'unknown':
-      pageUnfamiliarLemmas.add(lemma);
+      addToLemmaMap(pageUnfamiliarLemmas, lemma, node as HTMLSpanElement);
+      break;
+    case 'common':
+      addToLemmaMap(pageCommonLemmas, lemma, node as Text);
       break;
   }
+}
+
+/**
+ *  Given a word and its lemma, determine if it should be highlighted and create the appropriate node.
+ * @param text The original word text from the page
+ * @param lemma The lemmatized form of the word used for classification
+ * @returns The created HTMLSpanElement or Text node
+ */
+function createNodeByLemma(text: string, lemma: string): HTMLSpanElement | Text {
+  const wordClass = classifyLemma(lemma);
+
+  let node = (wordClass === 'common' || shouldSkipWord(text)) ? createTextNode(text, lemma) : createWordSpan(text, lemma, wordClass);
+
+  trackLemma(lemma, wordClass, node);
+  return node;
+}
+
+/**
+ * Helper to process lemmatized terms and build a fragment.
+ * Handles both lemmaMatrix (with pre/post) and lemmatizeSentence (with isWord) results.
+ */
+function buildFragmentFromTerms(
+  terms: LemmatizedTerm[] | LemmaMatrixTerm[]
+): DocumentFragment {
+
+  const fragment = document.createDocumentFragment();
+  const isLemmaMatrix = 'pre' in (terms[0] || {});
+
+  if (isLemmaMatrix) {
+    // lemmaMatrix format: { text, lemma, pre, post }
+    for (const term of terms as LemmaMatrixTerm[]) {
+      if (term.pre) {
+        fragment.appendChild(createTextNode(term.pre));
+      }
+
+      fragment.appendChild(createNodeByLemma(term.text, term.lemma));
+
+      if (term.post) {
+        fragment.appendChild(createTextNode(term.post));
+      }
+    }
+  } else {
+    // lemmatizeSentence format: { text, lemma, pos, isWord }
+    for (const term of terms as LemmatizedTerm[]) {
+      if (!term.isWord || shouldSkipWord(term.text)) {
+        const plainText = createTextNode(term.text, term.lemma);
+        fragment.appendChild(plainText);
+        continue;
+      }
+
+      fragment.appendChild(createNodeByLemma(term.text, term.lemma));
+    }
+  }
+
+  return fragment;
 }
 
 /**
@@ -243,28 +320,8 @@ function processTextNode(textNode: Text): void {
   if (!text?.trim()) return;
 
   const terms = lemmatizeSentence(text);
-  const fragment = document.createDocumentFragment();
 
-  for (const term of terms) {
-    // Non-word tokens and skipped words → plain text
-    if (!term.isWord || shouldSkipWord(term.text)) {
-      fragment.appendChild(document.createTextNode(term.text));
-      continue;
-    }
-
-    const wordClass = classifyLemma(term.lemma);
-
-    // Common words → plain text (no highlight)
-    if (wordClass === 'common') {
-      fragment.appendChild(document.createTextNode(term.text));
-      continue;
-    }
-
-    // Familiar, learning, unknown → highlighted span
-    const span = createWordSpan(term.text, term.lemma, wordClass);
-    fragment.appendChild(span);
-    trackLemma(term.lemma, wordClass);
-  }
+  const fragment = buildFragmentFromTerms(terms);
 
   textNode.parentNode?.replaceChild(fragment, textNode);
 }
@@ -300,101 +357,4 @@ export function highlightWords(root: Element | Document): void {
 export function refreshHighlighting(): void {
   removeHighlights(document.body);
   highlightWords(document.body);
-}
-
-/**
- * Wrap occurrences of a lemma in a single text node as learning spans.
- */
-function wrapLemmaInTextNode(textNode: Text, targetLemma: string): void {
-  const text = textNode.textContent;
-  if (!text?.trim()) return;
-
-  const terms = lemmatizeSentence(text);
-
-  // Quick check: does this node contain the target word?
-  const hasTarget = terms.some(
-    (t) => t.isWord && !shouldSkipWord(t.text) && t.lemma === targetLemma
-  );
-  if (!hasTarget) return;
-
-  const fragment = document.createDocumentFragment();
-  for (const term of terms) {
-    if (
-      term.isWord &&
-      !shouldSkipWord(term.text) &&
-      term.lemma === targetLemma
-    ) {
-      const span = createWordSpan(term.text, term.lemma, 'learning');
-      fragment.appendChild(span);
-      trackLemma(term.lemma, 'learning');
-    } else {
-      fragment.appendChild(document.createTextNode(term.text));
-    }
-  }
-  textNode.parentNode?.replaceChild(fragment, textNode);
-}
-
-/**
- * Process text nodes in background chunks using requestIdleCallback.
- * Falls back to setTimeout for browsers without requestIdleCallback.
- */
-function processNodesInBackground(
-  nodes: Text[],
-  targetLemma: string,
-  chunkSize: number = 20
-): void {
-  let index = 0;
-
-  const scheduleNext =
-    typeof requestIdleCallback !== 'undefined'
-      ? (cb: () => void) => requestIdleCallback(cb, { timeout: 100 })
-      : (cb: () => void) => setTimeout(cb, 0);
-
-  function processChunk(): void {
-    const end = Math.min(index + chunkSize, nodes.length);
-
-    while (index < end) {
-      const textNode = nodes[index];
-      // Node may have been removed or replaced since collection
-      if (textNode.parentNode) {
-        wrapLemmaInTextNode(textNode, targetLemma);
-      }
-      index++;
-    }
-
-    if (index < nodes.length) {
-      scheduleNext(processChunk);
-    }
-  }
-
-  if (nodes.length > 0) {
-    scheduleNext(processChunk);
-  }
-}
-
-/**
- * Walk text nodes in `root` and wrap occurrences of a specific lemma
- * as learning spans. Prioritizes the local block containing the interaction,
- * then processes the rest of the page in background chunks to avoid freezing.
- */
-export function wrapWordInTextNodes(
-  root: Element | Document,
-  targetLemma: string,
-  immediateContext?: Node
-): void {
-  // Step 1: Find and immediately process the local block
-  const localBlock = immediateContext
-    ? findBlockAncestor(immediateContext)
-    : null;
-
-  if (localBlock) {
-    const localNodes = collectTextNodes(localBlock);
-    for (const textNode of localNodes) {
-      wrapLemmaInTextNode(textNode, targetLemma);
-    }
-  }
-
-  // Step 2: Process remaining nodes in background
-  const remainingNodes = collectTextNodesExcluding(root, localBlock);
-  processNodesInBackground(remainingNodes, targetLemma);
 }

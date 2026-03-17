@@ -2,10 +2,11 @@
 // Lemmatization — dispatches to English (compromise.js) or French/Spanish (rule-based)
 // ============================================================
 
-import type { CoarsePOS, LemmatizedTerm } from '../types';
+import type { CoarsePOS, LemmatizedTerm, LemmaMatrixTerm } from '../types';
 import { currentLanguage } from './state';
 import { lemmatizeFr } from './lemmatizer-fr';
 import { lemmatizeEs } from './lemmatizer-es';
+import nlp from 'compromise';
 
 /**
  * Map fine-grained compromise.js tags to coarse POS categories.
@@ -44,112 +45,89 @@ function toCoarsePOS(tags: string[] | undefined): CoarsePOS {
   return 'Other';
 }
 
+
+interface VerbConjugation {
+  Infinitive?: string;
+  PastTense?: string;
+  PresentTense?: string;
+  Gerund?: string;
+  // Add other conjugation forms as needed
+}
+
 /**
- * Lemmatize a sentence/text with full context (English).
- * Uses compute('root') to get root forms while preserving alignment.
- *
- * Strategy:
- * 1. Parse sentence with nlp()
- * 2. Call compute('root') to add root property to each term
- * 3. Extract root and POS from json() output
+ * Lemmatize a sentence while preserving pre/post punctuation and whitespace.
+ * Uses compromise.js's compute('root') for better accuracy on verbs and nouns.
+ * Returns an array of { text, lemma, pre, post } for each token.
+ * @param text 
+ * @returns { text: string; lemma: string; pre: string; post: string }[]
  */
-export function lemmatizeSentenceEn(text: string): LemmatizedTerm[] {
-  if (!text?.trim()) return [];
+export function lemmatizeEn(text: string): LemmaMatrixTerm[] {
+  const doc = nlp(text)
 
-  // Split by word boundaries to preserve whitespace/punctuation
-  const tokens = text.match(/\p{L}+|[^\p{L}]+/gu) || [];
+  const verbLemmas = new Map()
+  doc.verbs().json().forEach((group: { verb: any; terms: any; }) => {
+    const verb = group.verb
+    if (!verb) return
+    for (const term of group.terms) {
+      const idx = term.index[1]
+      if (term.tags.includes('Negative') || term.tags.includes('Adverb')) {
+        continue
+      } else if (term.tags.includes('Auxiliary') || term.tags.includes('Copula')) {
+        const conj = nlp(term.normal).verbs().conjugate()[0] as VerbConjugation | undefined
+        verbLemmas.set(idx, conj?.Infinitive || term.normal)
+      } else {
+        verbLemmas.set(idx, verb.infinitive || term.normal)
+      }
+    }
+  })
 
-  if (typeof nlp !== 'function') {
-    // Fallback: no NLP available
-    return tokens.map((t) => ({
-      text: t,
-      lemma: t.toLowerCase(),
-      pos: 'Other' as CoarsePOS,
-      isWord: /\p{L}/u.test(t),
-    }));
+  const nounLemmas = new Map()
+  const nounDoc = doc.clone()
+  ;(nounDoc as any).nouns().toSingular()
+  const nounTerms = nounDoc.json().flatMap((s: any) => s.terms)
+  const origTerms = doc.json().flatMap((s: any) => s.terms)
+  for (let i = 0; i < origTerms.length && i < nounTerms.length; i++) {
+    if (nounTerms[i] && origTerms[i].normal !== nounTerms[i].normal && origTerms[i].tags.includes('Plural')) {
+      nounLemmas.set(origTerms[i].index[1], nounTerms[i].normal)
+    }
   }
 
-  const doc = nlp(text);
-  doc.compute('root');
-
-  // Get all terms with root and tags from json()
-  const json = doc.json();
-  const rootMap = new Map<string, string[]>();
-  const posMap = new Map<string, CoarsePOS[]>();
+  const json = doc.json()
+  const result = []
 
   for (const sentence of json) {
-    const terms = sentence.terms || [];
-    for (const term of terms) {
-      if (!term.text) continue;
-      const lower = term.text.toLowerCase();
-      const root = term.root || term.normal || lower;
-      const pos = toCoarsePOS(term.tags);
+    for (const term of sentence.terms) {
+      if (term.tags.includes('Punctuation')) continue
+      const idx = term.index[1]
 
-      if (!rootMap.has(lower)) {
-        rootMap.set(lower, []);
+      let lemma
+      if (verbLemmas.has(idx)) {
+        lemma = verbLemmas.get(idx)
+      } else if (nounLemmas.has(idx)) {
+        lemma = nounLemmas.get(idx)
+      } else {
+        lemma = term.normal || term.text.toLowerCase()
       }
-      rootMap.get(lower)!.push(root);
 
-      if (!posMap.has(lower)) {
-        posMap.set(lower, []);
-      }
-      posMap.get(lower)!.push(pos);
+      result.push({ text: term.text, lemma, pre: term.pre, post: term.post })
     }
   }
 
-  // Track consumption indices for duplicate words
-  const rootIndexMap = new Map<string, number>();
-  const posIndexMap = new Map<string, number>();
-
-  // Process tokens, looking up roots and POS
-  return tokens.map((t) => {
-    const isWord = /\p{L}/u.test(t);
-
-    if (!isWord) {
-      return {
-        text: t,
-        lemma: t,
-        pos: 'Other' as CoarsePOS,
-        isWord: false,
-      };
-    }
-
-    const lower = t.toLowerCase();
-
-    // Get root (handle duplicates)
-    const rootList = rootMap.get(lower);
-    let lemma = lower;
-    if (rootList && rootList.length > 0) {
-      const idx = rootIndexMap.get(lower) || 0;
-      lemma = rootList[idx] || rootList[0];
-      rootIndexMap.set(lower, idx + 1);
-    }
-
-    // Get POS (handle duplicates)
-    const posList = posMap.get(lower);
-    let pos: CoarsePOS = 'Other';
-    if (posList && posList.length > 0) {
-      const idx = posIndexMap.get(lower) || 0;
-      pos = posList[idx] || posList[0];
-      posIndexMap.set(lower, idx + 1);
-    }
-
-    return {
-      text: t,
-      lemma,
-      pos,
-      isWord: true,
-    };
-  });
+  return result
 }
 
 /**
  * Lemmatize a sentence dispatching to the correct language handler.
+ * For English, uses lemmaMatrix (better accuracy with pre/post preservation).
  * For French/Spanish, falls back to word-by-word processing (no POS context).
+ * 
+ * Note: Return type varies by language:
+ * - English: { text, lemma, pre, post }[]
+ * - French/Spanish: { text, lemma, pos, isWord }[]
  */
-export function lemmatizeSentence(text: string): LemmatizedTerm[] {
+export function lemmatizeSentence(text: string): LemmatizedTerm[] | LemmaMatrixTerm[] {
   if (currentLanguage === 'en') {
-    return lemmatizeSentenceEn(text);
+    return lemmatizeEn(text);
   }
 
   // Fallback for French/Spanish: word-by-word with their rule-based lemmatizers
@@ -165,24 +143,4 @@ export function lemmatizeSentence(text: string): LemmatizedTerm[] {
       isWord,
     };
   });
-}
-
-/**
- * Single-word lemmatize function for one-off lookups.
- * Uses sentence-level processing for accuracy even on single words.
- */
-function lemmatizeEn(word: string): string {
-  if (!word) return '';
-  const result = lemmatizeSentenceEn(word);
-  const wordResult = result.find((r) => r.isWord);
-  return wordResult?.lemma || word.toLowerCase();
-}
-
-/**
- * Dispatch lemmatization to the correct language handler.
- */
-export function lemmatize(word: string): string {
-  if (currentLanguage === 'fr') return lemmatizeFr(word);
-  if (currentLanguage === 'es') return lemmatizeEs(word);
-  return lemmatizeEn(word);
 }

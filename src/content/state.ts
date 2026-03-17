@@ -12,7 +12,7 @@ import type {
 // CEFR_WORDS, CEFR_LEVELS, CEFR_WORDS_FR, CEFR_WORDS_ES are global variables
 // loaded from data/*.js files before this bundle runs (see manifest.json)
 
-export const VOCAB_CLASS = 'vocab-builder-word'; // Familiar words (not visually highlighted)
+export const FAMILIAR_CLASS = 'vocab-builder-word'; // Familiar words (not visually highlighted)
 export const UNKNOWN_CLASS = 'vocab-builder-unknown'; // Unknown uncommon words (lavender background)
 export const LEARNING_CLASS = 'vocab-builder-learning'; // Learning words (amber background)
 
@@ -20,17 +20,22 @@ export const DEFAULT_CEFR_LEVEL: CefrLevel = 'B2';
 export const DEFAULT_LANGUAGE: Language = 'en';
 
 export let currentLanguage: Language = DEFAULT_LANGUAGE;
-export let COMMON_WORDS = new Set<string>();
+export let COMMON_WORDS = new Set<string>(); // Common words at or below the user's CEFR threshold, built from CEFR_WORDS data
 
-export let baseWordSet = new Set<string>(); // Familiar words
+export let familiarWordSet = new Set<string>(); // Familiar words
 export let learningWordSet = new Set<string>(); // Learning words
 export let lastLocalUpdate = 0; // Timestamp of last local update to skip redundant re-highlights
 export let highlightEnabled = true; // Whether highlighting and click interactions are active
 
-// Page-level unique word counters (accumulated during processTextNode)
-export const pageUnfamiliarLemmas = new Set<string>();
-export const pageLearningLemmas = new Set<string>();
-export const pageFamiliarLemmas = new Set<string>();
+// Page-level lemma → DOM node maps (accumulated during processTextNode)
+// Used for O(1) lookup on click/dblclick and for page stats (.size)
+export type LemmaSpanMap = Map<string, Set<HTMLSpanElement>>;
+export type LemmaTextMap = Map<string, Set<Text>>;
+
+export const pageUnfamiliarLemmas: LemmaSpanMap = new Map();
+export const pageLearningLemmas: LemmaSpanMap = new Map();
+export const pageFamiliarLemmas: LemmaSpanMap = new Map();
+export const pageCommonLemmas: LemmaTextMap = new Map();
 
 // Setters for mutable state (since we export lets)
 export function setCurrentLanguage(lang: Language): void {
@@ -41,8 +46,8 @@ export function setCommonWords(words: Set<string>): void {
   COMMON_WORDS = words;
 }
 
-export function setBaseWordSet(words: Set<string>): void {
-  baseWordSet = words;
+export function setFamiliarWordSet(words: Set<string>): void {
+  familiarWordSet = words;
 }
 
 export function setLearningWordSet(words: Set<string>): void {

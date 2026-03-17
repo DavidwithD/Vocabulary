@@ -2,24 +2,23 @@
 // Click interactions and word state transitions
 // ============================================================
 
-import type { CefrLevel, Language, WordEntry, StorageData } from '../types';
+import type { CefrLevel, Language, WordEntry, WordStatus, StorageData } from '../types';
 import {
-  VOCAB_CLASS,
+  FAMILIAR_CLASS,
   UNKNOWN_CLASS,
   LEARNING_CLASS,
   DEFAULT_CEFR_LEVEL,
   DEFAULT_LANGUAGE,
-  currentLanguage,
-  COMMON_WORDS,
-  baseWordSet,
+  familiarWordSet,
   learningWordSet,
   highlightEnabled,
   lastLocalUpdate,
   pageUnfamiliarLemmas,
   pageLearningLemmas,
   pageFamiliarLemmas,
+  pageCommonLemmas,
   setCurrentLanguage,
-  setBaseWordSet,
+  setFamiliarWordSet,
   setLearningWordSet,
   setLastLocalUpdate,
   setHighlightEnabled,
@@ -28,137 +27,130 @@ import {
   thresholdToCefrLevel,
   buildWordSets,
 } from './state';
-import { lemmatize } from './lemmatizer';
 import {
   highlightWords,
   removeHighlights,
   refreshHighlighting,
-  wrapWordInTextNodes,
+  createWordSpan,
 } from './highlighter';
 
 /**
- * Add an unknown word to the learning list.
- * Provides immediate UI feedback before storage completes.
+ * Persist a lemma with the given status in chrome.storage and update the in-memory word set.
+ * If the word already exists in storage, its status is updated; otherwise it is added.
  */
-function addWordAsLearning(lemma: string): void {
-  // Immediate visual feedback
-  learningWordSet.add(lemma);
-
-  // Update all instances of this lemma on the page
-  const allUnknown = document.querySelectorAll('.' + UNKNOWN_CLASS);
-  allUnknown.forEach((span) => {
-    if ((span as HTMLElement).dataset.lemma === lemma) {
-      span.className = LEARNING_CLASS;
-      (span as HTMLElement).style.backgroundColor = '#fff3e0';
-      (span as HTMLElement).style.color = '#e65100';
-      (span as HTMLElement).style.cursor = 'pointer';
-    }
-  });
-
+export function saveWord(lemma: string, status: WordStatus, targetSet: Set<string>): void {
+  targetSet.add(lemma);
   setLastLocalUpdate(Date.now());
 
   const key = getWordsKey();
   chrome.storage.local.get({ [key]: [] }, (data) => {
     const words: WordEntry[] = data[key];
-    const exists = words.some((entry) => entry.word.toLowerCase() === lemma);
-    if (exists) return;
+    const index = words.findIndex((entry) => entry.word.toLowerCase() === lemma);
 
-    const newWord: WordEntry = { word: lemma, status: 'learning' };
-    const updatedWords = [newWord, ...words];
-    chrome.storage.local.set({ [key]: updatedWords });
+    if (index !== -1) {
+      words[index] = { ...words[index], status };
+    } else {
+      words.unshift({ word: lemma, status });
+    }
+
+    chrome.storage.local.set({ [key]: words });
   });
+}
+
+/**
+ * Move all spans for a lemma from one map to another, applying new styles.
+ */
+function moveSpans(
+  lemma: string,
+  from: Map<string, Set<HTMLSpanElement>>,
+  to: Map<string, Set<HTMLSpanElement>>,
+  className: string,
+  styles: { bg: string; color: string; cursor: string }
+): void {
+  const spans = from.get(lemma);
+  if (!spans) return;
+
+  let targetSet = to.get(lemma);
+  if (!targetSet) {
+    targetSet = new Set();
+    to.set(lemma, targetSet);
+  }
+
+  for (const span of spans) {
+    span.className = className;
+    span.style.backgroundColor = styles.bg;
+    span.style.color = styles.color;
+    span.style.cursor = styles.cursor;
+    targetSet.add(span);
+  }
+  from.delete(lemma);
+}
+
+/**
+ * Add an unknown word to the learning list.
+ * Uses the lemma map for instant DOM updates.
+ */
+function addWordAsLearning(lemma: string): void {
+  saveWord(lemma, 'learning', learningWordSet);
+  moveSpans(lemma, pageUnfamiliarLemmas, pageLearningLemmas,
+    LEARNING_CLASS, { bg: '#fff3e0', color: '#e65100', cursor: 'pointer' });
 }
 
 /**
  * Promote a learning word to familiar.
- * Provides immediate UI feedback before storage completes.
+ * Uses the lemma map for instant DOM updates.
  */
 function promoteToFamiliar(lemma: string): void {
-  // Immediate visual feedback
   learningWordSet.delete(lemma);
-  baseWordSet.add(lemma);
-
-  const allLearning = document.querySelectorAll('.' + LEARNING_CLASS);
-  allLearning.forEach((span) => {
-    if ((span as HTMLElement).dataset.lemma === lemma) {
-      span.className = VOCAB_CLASS;
-      (span as HTMLElement).style.backgroundColor = '';
-      (span as HTMLElement).style.color = '';
-      (span as HTMLElement).style.cursor = '';
-    }
-  });
-
-  setLastLocalUpdate(Date.now());
-
-  const key = getWordsKey();
-  chrome.storage.local.get({ [key]: [] }, (data) => {
-    const updatedWords = (data[key] as WordEntry[]).map((entry) => {
-      if (entry.word.toLowerCase() === lemma) {
-        return { ...entry, status: 'familiar' as const };
-      }
-      return entry;
-    });
-    chrome.storage.local.set({ [key]: updatedWords });
-  });
+  saveWord(lemma, 'familiar', familiarWordSet);
+  moveSpans(lemma, pageLearningLemmas, pageFamiliarLemmas,
+    FAMILIAR_CLASS, { bg: '', color: '', cursor: '' });
 }
 
 /**
  * Demote a familiar word back to learning.
- * Provides immediate UI feedback before storage completes.
+ * Uses the lemma map for instant DOM updates.
  */
 function demoteToLearning(lemma: string): void {
-  // Immediate visual feedback
-  baseWordSet.delete(lemma);
-  learningWordSet.add(lemma);
-
-  const allFamiliar = document.querySelectorAll('.' + VOCAB_CLASS);
-  allFamiliar.forEach((span) => {
-    if ((span as HTMLElement).dataset.lemma === lemma) {
-      span.className = LEARNING_CLASS;
-      (span as HTMLElement).style.backgroundColor = '#fff3e0';
-      (span as HTMLElement).style.color = '#e65100';
-      (span as HTMLElement).style.cursor = 'pointer';
-    }
-  });
-
-  setLastLocalUpdate(Date.now());
-
-  const key = getWordsKey();
-  chrome.storage.local.get({ [key]: [] }, (data) => {
-    const updatedWords = (data[key] as WordEntry[]).map((entry) => {
-      if (entry.word.toLowerCase() === lemma) {
-        return { ...entry, status: 'learning' as const };
-      }
-      return entry;
-    });
-    chrome.storage.local.set({ [key]: updatedWords });
-  });
+  familiarWordSet.delete(lemma);
+  saveWord(lemma, 'learning', learningWordSet);
+  moveSpans(lemma, pageFamiliarLemmas, pageLearningLemmas,
+    LEARNING_CLASS, { bg: '#fff3e0', color: '#e65100', cursor: 'pointer' });
 }
 
 /**
- * Add a common word (plain text, no span) to the learning list.
- * Uses a targeted DOM walk to find and wrap only matching text nodes,
- * avoiding a full-page refresh.
+ * Handle double-click on a common word (plain text).
+ * Validates the selection, then replaces all matching text nodes with learning spans.
  */
-function addCommonWordAsLearning(word: string, contextNode?: Node): void {
-  const lemma = lemmatize(word);
-  learningWordSet.add(lemma);
+function addCommonWordAsLearning(): void {
+  const selection = window.getSelection();
+  const selectedText = selection?.toString().trim();
+  const textNode = selection?.anchorNode;
 
-  setLastLocalUpdate(Date.now());
+  if (!selectedText || !/^\p{L}+$/u.test(selectedText) ||
+      textNode?.nodeType !== Node.TEXT_NODE) return;
 
-  const key = getWordsKey();
-  chrome.storage.local.get({ [key]: [] }, (data) => {
-    const words: WordEntry[] = data[key];
-    const exists = words.some((entry) => entry.word.toLowerCase() === lemma);
-    if (exists) return;
+  const lemma = (textNode as any).lemma;
 
-    const newWord: WordEntry = { word: lemma, status: 'learning' };
-    const updatedWords = [newWord, ...words];
-    chrome.storage.local.set({ [key]: updatedWords });
-  });
+  selection?.removeAllRanges();
+  saveWord(lemma, 'learning', learningWordSet);
 
-  // Targeted update: immediate local block, then background for rest
-  wrapWordInTextNodes(document.body, lemma, contextNode);
+  const textNodes = pageCommonLemmas.get(lemma);
+  if (!textNodes) return;
+
+  let learningSet = pageLearningLemmas.get(lemma);
+  if (!learningSet) {
+    learningSet = new Set();
+    pageLearningLemmas.set(lemma, learningSet);
+  }
+
+  for (const node of textNodes) {
+    if (!node.parentNode) continue;
+    const span = createWordSpan(node.textContent || '', lemma, 'learning');
+    node.parentNode.replaceChild(span, node);
+    learningSet.add(span);
+  }
+  pageCommonLemmas.delete(lemma);
 }
 
 // ============================================================
@@ -192,24 +184,17 @@ document.addEventListener('dblclick', (e: MouseEvent) => {
   if (!highlightEnabled) return;
   const target = e.target as HTMLElement;
 
-  if (target.classList.contains(VOCAB_CLASS)) {
+  if (target.classList.contains(FAMILIAR_CLASS)) {
     const lemma = target.dataset.lemma;
     if (lemma) demoteToLearning(lemma);
   } else if (
-    !target.classList.contains(UNKNOWN_CLASS) &&
-    !target.classList.contains(LEARNING_CLASS)
+    target.classList.contains(UNKNOWN_CLASS) ||
+    target.classList.contains(LEARNING_CLASS)
   ) {
-    // Possibly a common word (plain text)
-    const selection = window.getSelection();
-    const selectedText = selection?.toString().trim();
-    if (selectedText && /^\p{L}+$/u.test(selectedText)) {
-      const lemma = lemmatize(selectedText);
-      if (COMMON_WORDS.has(lemma)) {
-        // Pass the target element for context-aware highlighting
-        addCommonWordAsLearning(selectedText, target);
-        selection?.removeAllRanges();
-      }
-    }
+    // Do nothing
+  } 
+  else {
+    addCommonWordAsLearning();
   }
 });
 
@@ -281,7 +266,7 @@ chrome.storage.local.get(
     >;
     const wordList = storageData[wordsKey as WordsKey] || [];
     const { familiar, learning } = buildWordSets(wordList);
-    setBaseWordSet(familiar);
+    setFamiliarWordSet(familiar);
     setLearningWordSet(learning);
     setHighlightEnabled(storageData.highlightEnabled ?? true);
 
@@ -322,7 +307,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
           chrome.storage.local.get({ [wordsKey]: [] }, (wordData) => {
             try {
               const { familiar, learning } = buildWordSets(wordData[wordsKey]);
-              setBaseWordSet(familiar);
+              setFamiliarWordSet(familiar);
               setLearningWordSet(learning);
               if (highlightEnabled) refreshHighlighting();
             } catch {
@@ -356,7 +341,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
       const { familiar, learning } = buildWordSets(
         changes[wordsKey].newValue || []
       );
-      setBaseWordSet(familiar);
+      setFamiliarWordSet(familiar);
       setLearningWordSet(learning);
       if (highlightEnabled) refreshHighlighting();
     }
@@ -379,3 +364,4 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // Extension context invalidated
   }
 });
+
