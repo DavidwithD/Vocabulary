@@ -1,31 +1,28 @@
 # Tests
 
-This folder contains unit tests for the Vocabulary extension.
+This folder contains unit tests for the Vocabulary extension, powered by [Vitest](https://vitest.dev/).
 
 ## Running Tests
 
-To run the `lemmaMatrix` test:
-
 ```bash
-npm run build:test && node tests/lemmaMatrix.test.mjs
-```
-
-Or you can use the existing test command:
-```bash
-npm test
+npm test            # run all tests once
+npm run test:watch  # watch mode (re-runs on file save)
 ```
 
 ## Test Structure
 
-- **lemmaMatrix.test.mjs** - Unit tests for the `lemmaMatrix` function from `lemmatizer.ts`
-  - Tests verb lemmatization (walks → walk, running → run)
-  - Tests noun lemmatization (cats → cat, boxes → box)
-  - Tests return structure
-  - Tests edge cases
+- **lemmatizer.test.ts** — Unit tests for `lemmatizeEn`
+  - Verb lemmatization (walks -> walk, running -> run)
+  - Noun lemmatization (cats -> cat, boxes -> box)
+  - Passive and multi-verb constructions (was seen leaving -> be, see, leave)
+  - Return structure and punctuation handling
+  - Edge cases
+- **lemmatizer-whitespace.test.ts** — Whitespace and punctuation preservation
+  - Verifies `pre + text + post` reconstructs the original input
+  - Covers punctuation, spacing variations, quotes, contractions
 
 ## Adding New Tests
 
-1. Create a new `.test.mjs` file in this folder
-2. Import the function from `../dist/lemmatizer.test.js` (built by rollup)
-3. Write your test assertions
-4. Update the npm test script if needed
+1. Create a new `.test.ts` file in this folder
+2. Import directly from `../src/...` (no build step needed)
+3. Use `describe`, `it`, `expect` from `vitest`

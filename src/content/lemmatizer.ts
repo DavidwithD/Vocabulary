@@ -76,7 +76,8 @@ export function lemmatizeEn(text: string): LemmaMatrixTerm[] {
         const conj = nlp(term.normal).verbs().conjugate()[0] as VerbConjugation | undefined
         verbLemmas.set(idx, conj?.Infinitive || term.normal)
       } else {
-        verbLemmas.set(idx, verb.infinitive || term.normal)
+        const conj = nlp(term.normal).verbs().conjugate()[0] as VerbConjugation | undefined
+        verbLemmas.set(idx, conj?.Infinitive || term.normal)
       }
     }
   })
