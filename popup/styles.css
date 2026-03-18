@@ -204,6 +204,11 @@ ul li .delete-btn:hover {
   background: none;
 }
 
+.tab[data-tab="unknown"].active {
+  color: #5e35b1;
+  border-bottom-color: #5e35b1;
+}
+
 .tab span {
   font-weight: 400;
   font-size: 11px;
@@ -216,6 +221,23 @@ ul li .delete-btn:hover {
   display: flex;
   gap: 4px;
   align-items: center;
+}
+
+.add-learning-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  color: #adb5bd;
+  transition: color 0.2s;
+}
+
+.add-learning-btn:hover {
+  color: #5e35b1;
+  background: none;
 }
 
 .promote-btn,

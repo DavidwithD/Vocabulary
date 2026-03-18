@@ -265,7 +265,13 @@ function trackLemma(
 function createNodeByLemma(text: string, lemma: string): HTMLSpanElement | Text {
   const wordClass = classifyLemma(lemma);
 
-  let node = (wordClass === 'common' || shouldSkipWord(text)) ? createTextNode(text, lemma) : createWordSpan(text, lemma, wordClass);
+  if (shouldSkipWord(text)) {
+    return createTextNode(text, lemma); // no tracking — symbols/numbers/single-letters
+  }
+
+  const node = wordClass === 'common'
+    ? createTextNode(text, lemma)
+    : createWordSpan(text, lemma, wordClass);
 
   trackLemma(lemma, wordClass, node);
   return node;

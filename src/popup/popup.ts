@@ -8,38 +8,35 @@ import type {
   WordEntry,
   WordStatus,
   PageStatsResponse,
+  UnknownWordsResponse,
 } from '../types';
+import * as store from '../storage/store';
 
 // Language selector
 const languageSelect = document.getElementById('language') as HTMLSelectElement;
 let currentLang: Language = 'en';
-
-function getWordsKey(): `words_${Language}` {
-  return `words_${currentLang}`;
-}
 
 // Highlight toggle
 const highlightToggle = document.getElementById(
   'highlightToggle'
 ) as HTMLInputElement;
 
-chrome.storage.local.get(
-  { highlightEnabled: true },
-  (data: { highlightEnabled?: boolean }) => {
-    highlightToggle.checked = data.highlightEnabled ?? true;
-  }
-);
-
-highlightToggle.addEventListener('change', () => {
-  chrome.storage.local.set({ highlightEnabled: highlightToggle.checked });
+store.get('highlightEnabled').then((enabled) => {
+  highlightToggle.checked = enabled;
 });
 
+highlightToggle.addEventListener('change', () => {
+  store.set('highlightEnabled', highlightToggle.checked);
+});
+
+const unknownList = document.getElementById('unknownList') as HTMLUListElement;
 const learningList = document.getElementById(
   'learningList'
 ) as HTMLUListElement;
 const familiarList = document.getElementById(
   'familiarList'
 ) as HTMLUListElement;
+const unknownCount = document.getElementById('unknownCount') as HTMLSpanElement;
 const learningCount = document.getElementById(
   'learningCount'
 ) as HTMLSpanElement;
@@ -53,36 +50,119 @@ const cefrLevelSelect = document.getElementById(
   'cefrLevel'
 ) as HTMLSelectElement;
 const listActions = document.getElementById('listActions') as HTMLDivElement;
+const refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
 const copyBtn = document.getElementById('copyBtn') as HTMLButtonElement;
 const downloadBtn = document.getElementById('downloadBtn') as HTMLButtonElement;
 
-let activeTab: WordStatus = 'learning';
+let activeTab: WordStatus | 'unknown' = 'unknown';
+let unknownWords: string[] = [];
 
 // Tab switching
 tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
-    activeTab = (tab as HTMLElement).dataset.tab as WordStatus;
+    activeTab = (tab as HTMLElement).dataset.tab as WordStatus | 'unknown';
     tabs.forEach((t) => t.classList.remove('active'));
     tab.classList.add('active');
+    unknownList.style.display = activeTab === 'unknown' ? '' : 'none';
     learningList.style.display = activeTab === 'learning' ? '' : 'none';
     familiarList.style.display = activeTab === 'familiar' ? '' : 'none';
+    if (activeTab === 'unknown') {
+      loadUnknownWords();
+    } else {
+      loadWords();
+    }
+  });
+});
+
+// ============================================================
+// Unknown words (temporary, per page load)
+// ============================================================
+
+function loadUnknownWords(): void {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs[0]?.id) {
+      renderUnknownWords([]);
+      return;
+    }
+    chrome.tabs.sendMessage(
+      tabs[0].id,
+      { type: 'getUnknownWords' },
+      (response: UnknownWordsResponse | undefined) => {
+        if (chrome.runtime.lastError || !response) {
+          renderUnknownWords([]);
+          return;
+        }
+        unknownWords = response.words;
+        renderUnknownWords(unknownWords);
+      }
+    );
+  });
+}
+
+function renderUnknownWords(words: string[]): void {
+  unknownList.innerHTML = '';
+  unknownCount.textContent = String(words.length);
+  wordCount.textContent = `${words.length} word${words.length !== 1 ? 's' : ''} on this page`;
+  emptyState.style.display = words.length === 0 ? 'block' : 'none';
+  // Always show listActions when on unknown tab (for the refresh button),
+  // but show copy/download only when there are words
+  listActions.style.display = '';
+  refreshBtn.style.display = '';
+  copyBtn.style.display = words.length > 0 ? '' : 'none';
+  downloadBtn.style.display = words.length > 0 ? '' : 'none';
+  words.forEach((word) => {
+    unknownList.appendChild(createUnknownWordLi(word));
+  });
+}
+
+function createUnknownWordLi(word: string): HTMLLIElement {
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <div class="word-info">
+      <strong>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5e35b1;margin-right:6px;"></span>${escapeHtml(word)}
+      </strong>
+    </div>
+    <div class="word-actions">
+      <button class="add-learning-btn" data-word="${escapeHtml(word)}" title="Add to learning">+</button>
+    </div>
+  `;
+  return li;
+}
+
+unknownList.addEventListener('click', (e: MouseEvent) => {
+  const btn = (e.target as HTMLElement).closest('button');
+  if (!btn || !btn.classList.contains('add-learning-btn')) return;
+  const word = btn.dataset.word?.toLowerCase();
+  if (!word) return;
+
+  store.getWords(currentLang).then((words) => {
+    if (!words.some((e) => e.word.toLowerCase() === word)) {
+      words.unshift({ word, status: 'learning' });
+      saveWords(words);
+    }
+    // Optimistic removal from unknown list
+    unknownWords = unknownWords.filter((w) => w !== word);
+    renderUnknownWords(unknownWords);
+    // Update learning badge count
     loadWords();
   });
 });
 
+refreshBtn.addEventListener('click', () => {
+  loadUnknownWords();
+});
+
+// ============================================================
+// Persistent word lists (learning / familiar)
+// ============================================================
+
 function loadWords(): void {
-  const key = getWordsKey();
-  chrome.storage.local.get(
-    { [key]: [] },
-    (data: Record<string, WordEntry[]>) => {
-      renderWords(data[key]);
-    }
-  );
+  store.getWords(currentLang).then(renderWords);
 }
 
 function saveWords(words: WordEntry[]): void {
-  const key = getWordsKey();
-  chrome.storage.local.set({ [key]: words });
+  store.setWords(currentLang, words);
 }
 
 function renderWords(words: WordEntry[]): void {
@@ -103,14 +183,20 @@ function renderWords(words: WordEntry[]): void {
 
   learningCount.textContent = String(learningWords.length);
   familiarCount.textContent = String(familiarWords.length);
-  wordCount.textContent = `${words.length} word${
-    words.length !== 1 ? 's' : ''
-  } total`;
-  emptyState.style.display = words.length === 0 ? 'block' : 'none';
 
-  const activeCount =
-    activeTab === 'learning' ? learningWords.length : familiarWords.length;
-  listActions.style.display = activeCount > 0 ? '' : 'none';
+  // Only update toolbar if not on the unknown tab
+  if (activeTab !== 'unknown') {
+    const activeCount =
+      activeTab === 'learning' ? learningWords.length : familiarWords.length;
+    wordCount.textContent = `${words.length} word${
+      words.length !== 1 ? 's' : ''
+    } total`;
+    emptyState.style.display = words.length === 0 ? 'block' : 'none';
+    listActions.style.display = activeCount > 0 ? '' : 'none';
+    refreshBtn.style.display = 'none';
+    copyBtn.style.display = '';
+    downloadBtn.style.display = '';
+  }
 
   learningWords.forEach((entry) => {
     learningList.appendChild(createWordLi(entry, 'learning'));
@@ -162,30 +248,26 @@ function handleWordAction(
   action: 'promote' | 'demote' | 'delete',
   targetWord: string
 ): void {
-  const key = getWordsKey();
-  chrome.storage.local.get(
-    { [key]: [] },
-    (data: Record<string, WordEntry[]>) => {
-      let words = data[key];
-      if (action === 'promote') {
-        words = words.map((e) =>
-          e.word.toLowerCase() === targetWord
-            ? { ...e, status: 'familiar' as const }
-            : e
-        );
-      } else if (action === 'demote') {
-        words = words.map((e) =>
-          e.word.toLowerCase() === targetWord
-            ? { ...e, status: 'learning' as const }
-            : e
-        );
-      } else if (action === 'delete') {
-        words = words.filter((e) => e.word.toLowerCase() !== targetWord);
-      }
-      saveWords(words);
-      renderWords(words);
+  store.getWords(currentLang).then((words) => {
+    let updated: WordEntry[];
+    if (action === 'promote') {
+      updated = words.map((e) =>
+        e.word.toLowerCase() === targetWord
+          ? { ...e, status: 'familiar' as const }
+          : e
+      );
+    } else if (action === 'demote') {
+      updated = words.map((e) =>
+        e.word.toLowerCase() === targetWord
+          ? { ...e, status: 'learning' as const }
+          : e
+      );
+    } else {
+      updated = words.filter((e) => e.word.toLowerCase() !== targetWord);
     }
-  );
+    saveWords(updated);
+    renderWords(updated);
+  });
 }
 
 learningList.addEventListener('click', (e: MouseEvent) => {
@@ -218,20 +300,22 @@ chrome.storage.local.get(
   (data: Record<string, unknown>) => {
     // Migration: move old `words` key to `words_en`
     if (data.words !== null && data.words_en === null) {
-      chrome.storage.local.set({ words_en: data.words });
-      chrome.storage.local.remove('words');
+      store.set('words_en', data.words as WordEntry[]);
+      store.remove('words');
     }
 
     currentLang = (data.language as Language) || 'en';
     languageSelect.value = currentLang;
     loadWords();
+    loadUnknownWords();
   }
 );
 
 languageSelect.addEventListener('change', () => {
   currentLang = languageSelect.value as Language;
-  chrome.storage.local.set({ language: currentLang });
+  store.set('language', currentLang);
   loadWords();
+  if (activeTab === 'unknown') loadUnknownWords();
 });
 
 // CEFR level setting
@@ -248,9 +332,9 @@ chrome.storage.local.get(
         7000: 'C2',
         10000: 'C2',
       };
-      const level = map[data.commonWordThreshold as number] || 'B2';
-      chrome.storage.local.set({ cefrLevel: level });
-      chrome.storage.local.remove('commonWordThreshold');
+      const level = (map[data.commonWordThreshold as number] || 'B2') as CefrLevel;
+      store.set('cefrLevel', level);
+      store.remove('commonWordThreshold');
       cefrLevelSelect.value = level;
     } else {
       cefrLevelSelect.value = (data.cefrLevel as CefrLevel) || 'B2';
@@ -259,21 +343,21 @@ chrome.storage.local.get(
 );
 
 cefrLevelSelect.addEventListener('change', () => {
-  chrome.storage.local.set({ cefrLevel: cefrLevelSelect.value });
+  store.set('cefrLevel', cefrLevelSelect.value as CefrLevel);
 });
 
 // Copy and Download handlers
 function getActiveWords(callback: (words: string[]) => void): void {
-  const key = getWordsKey();
-  chrome.storage.local.get(
-    { [key]: [] },
-    (data: Record<string, WordEntry[]>) => {
-      const filtered = data[key]
-        .filter((e) => (e.status || 'familiar') === activeTab)
-        .map((e) => e.word);
-      callback(filtered);
-    }
-  );
+  if (activeTab === 'unknown') {
+    callback([...unknownWords]);
+    return;
+  }
+  store.getWords(currentLang).then((words) => {
+    const filtered = words
+      .filter((e) => (e.status || 'familiar') === activeTab)
+      .map((e) => e.word);
+    callback(filtered);
+  });
 }
 
 copyBtn.addEventListener('click', () => {

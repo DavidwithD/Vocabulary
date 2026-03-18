@@ -17,6 +17,7 @@
 | F-11 | [CEFR Vocabulary Levels](F-11-cefr-vocabulary-levels.md) | `done` | Replace numeric threshold with A1–C2 CEFR level selector backed by EFLLex data |
 | F-12 | [Spanish Language Support](F-12-spanish-language.md) | `done` | Language selector with Spanish CEFR word list and lemmatizer |
 | F-13 | [Word Filtering](F-13-word-filtering.md) | `in-progress` | Skip single-letter tokens and non-Latin characters per language |
+| F-14 | [Unknown Word List](F-14-unknown-word-list.md) | `done` | Temporary per-page unknown word list in popup with add-to-learning action |
 
 <!-- Add new features here -->
 

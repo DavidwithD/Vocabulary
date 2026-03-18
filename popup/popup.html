@@ -40,7 +40,10 @@
       <div id="pageStats" class="page-stats"></div>
 
       <div class="tabs">
-        <button class="tab active" data-tab="learning">
+        <button class="tab active" data-tab="unknown">
+          Unknown <span id="unknownCount">0</span>
+        </button>
+        <button class="tab" data-tab="learning">
           Learning <span id="learningCount">0</span>
         </button>
         <button class="tab" data-tab="familiar">
@@ -49,8 +52,11 @@
       </div>
 
       <div class="list-toolbar">
-        <div id="wordCount" class="word-count">0 words total</div>
+        <div id="wordCount" class="word-count">0 words on this page</div>
         <div id="listActions" class="list-actions">
+          <button id="refreshBtn" class="action-btn" title="Refresh unknown words">
+            &#x21BB;
+          </button>
           <button id="copyBtn" class="action-btn" title="Copy to clipboard">
             &#x2750;
           </button>
@@ -64,7 +70,8 @@
         </div>
       </div>
 
-      <ul id="learningList" class="word-section"></ul>
+      <ul id="unknownList" class="word-section"></ul>
+      <ul id="learningList" class="word-section" style="display: none"></ul>
       <ul id="familiarList" class="word-section" style="display: none"></ul>
 
       <div id="emptyState" class="empty-state">

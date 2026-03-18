@@ -48,6 +48,14 @@ export interface PageStatsResponse {
   familiar: number;
 }
 
+export interface UnknownWordsRequest {
+  type: 'getUnknownWords';
+}
+
+export interface UnknownWordsResponse {
+  words: string[];
+}
+
 /** Build result of splitting words into familiar/learning Sets */
 export interface WordSetsResult {
   familiar: Set<string>;

@@ -2,7 +2,8 @@
 // Click interactions and word state transitions
 // ============================================================
 
-import type { CefrLevel, Language, WordEntry, WordStatus, StorageData } from '../types';
+import type { CefrLevel, Language, WordEntry, WordStatus } from '../types';
+import * as store from '../storage/store';
 import {
   FAMILIAR_CLASS,
   UNKNOWN_CLASS,
@@ -43,17 +44,14 @@ export function saveWord(lemma: string, status: WordStatus, targetSet: Set<strin
   setLastLocalUpdate(Date.now());
 
   const key = getWordsKey();
-  chrome.storage.local.get({ [key]: [] }, (data) => {
-    const words: WordEntry[] = data[key];
+  store.get(key).then((words) => {
     const index = words.findIndex((entry) => entry.word.toLowerCase() === lemma);
-
     if (index !== -1) {
       words[index] = { ...words[index], status };
     } else {
       words.unshift({ word: lemma, status });
     }
-
-    chrome.storage.local.set({ [key]: words });
+    store.set(key, words);
   });
 }
 
@@ -243,8 +241,8 @@ chrome.storage.local.get(
 
     // Migration: move old `words` key to `words_en`
     if (storageData.words !== null && storageData.words_en === null) {
-      chrome.storage.local.set({ words_en: storageData.words });
-      chrome.storage.local.remove('words');
+      store.set('words_en', storageData.words!);
+      store.remove('words');
       storageData.words_en = storageData.words;
     }
 
@@ -252,8 +250,8 @@ chrome.storage.local.get(
     let level = storageData.cefrLevel;
     if (!level && storageData.commonWordThreshold) {
       level = thresholdToCefrLevel(storageData.commonWordThreshold);
-      chrome.storage.local.set({ cefrLevel: level });
-      chrome.storage.local.remove('commonWordThreshold');
+      store.set('cefrLevel', level);
+      store.remove('commonWordThreshold');
     }
 
     setCurrentLanguage(storageData.language || DEFAULT_LANGUAGE);
@@ -278,13 +276,11 @@ chrome.storage.local.get(
 );
 
 // Re-highlight when word list or settings change
-chrome.storage.onChanged.addListener((changes, area) => {
+store.subscribe((changes) => {
   try {
-    if (area !== 'local') return;
-
     // Highlight toggle changed from popup
     if (changes.highlightEnabled) {
-      setHighlightEnabled(changes.highlightEnabled.newValue);
+      setHighlightEnabled(changes.highlightEnabled.newValue ?? true);
       if (highlightEnabled) {
         highlightWords(document.body);
         observer.observe(document.body, { childList: true, subtree: true });
@@ -297,33 +293,25 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
     // Language changed from popup — switch everything and re-highlight
     if (changes.language) {
-      setCurrentLanguage(changes.language.newValue || DEFAULT_LANGUAGE);
-      // Rebuild common words for the new language
-      chrome.storage.local.get({ cefrLevel: DEFAULT_CEFR_LEVEL }, (data) => {
-        try {
-          buildCommonWordsSet(data.cefrLevel || DEFAULT_CEFR_LEVEL);
-          // Load word list for the new language
-          const wordsKey = getWordsKey();
-          chrome.storage.local.get({ [wordsKey]: [] }, (wordData) => {
-            try {
-              const { familiar, learning } = buildWordSets(wordData[wordsKey]);
-              setFamiliarWordSet(familiar);
-              setLearningWordSet(learning);
-              if (highlightEnabled) refreshHighlighting();
-            } catch {
-              // Extension context invalidated
-            }
-          });
-        } catch {
-          // Extension context invalidated
-        }
-      });
+      setCurrentLanguage(changes.language.newValue ?? DEFAULT_LANGUAGE);
+      store.get('cefrLevel')
+        .then((cefrLevel) => {
+          buildCommonWordsSet(cefrLevel);
+          return store.get(getWordsKey());
+        })
+        .then((wordList) => {
+          const { familiar, learning } = buildWordSets(wordList);
+          setFamiliarWordSet(familiar);
+          setLearningWordSet(learning);
+          if (highlightEnabled) refreshHighlighting();
+        })
+        .catch(() => { /* Extension context invalidated */ });
       return;
     }
 
     // CEFR level changed from popup — rebuild common words Set and refresh
     if (changes.cefrLevel) {
-      buildCommonWordsSet(changes.cefrLevel.newValue || DEFAULT_CEFR_LEVEL);
+      buildCommonWordsSet(changes.cefrLevel.newValue ?? DEFAULT_CEFR_LEVEL);
       if (highlightEnabled) refreshHighlighting();
       return;
     }
@@ -332,14 +320,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const wordsKey = getWordsKey();
     if (changes[wordsKey]) {
       // If update happened less than 500ms ago, it was from this page - skip refresh
-      const now = Date.now();
-      if (now - lastLocalUpdate < 500) {
-        return;
-      }
+      if (Date.now() - lastLocalUpdate < 500) return;
 
       // Update from another source (popup, another tab) - need full refresh
       const { familiar, learning } = buildWordSets(
-        changes[wordsKey].newValue || []
+        changes[wordsKey]!.newValue ?? []
       );
       setFamiliarWordSet(familiar);
       setLearningWordSet(learning);
@@ -350,7 +335,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// Respond to popup requests for page statistics
+// Respond to popup requests for page statistics and unknown word list
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   try {
     if (msg.type === 'getPageStats') {
@@ -358,6 +343,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         unfamiliar: pageUnfamiliarLemmas.size,
         learning: pageLearningLemmas.size,
         familiar: pageFamiliarLemmas.size,
+      });
+    } else if (msg.type === 'getUnknownWords') {
+      sendResponse({
+        words: Array.from(pageUnfamiliarLemmas.keys()).sort(),
       });
     }
   } catch {
