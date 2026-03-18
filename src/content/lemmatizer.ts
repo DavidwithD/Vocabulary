@@ -64,34 +64,22 @@ interface VerbConjugation {
 export function lemmatizeEn(text: string): LemmaMatrixTerm[] {
   const doc = nlp(text)
 
+  ;(doc as any).compute('root')
+
   const verbLemmas = new Map()
   doc.verbs().json().forEach((group: { verb: any; terms: any; }) => {
     const verb = group.verb
     if (!verb) return
     for (const term of group.terms) {
-      const idx = term.index[1]
+      const key = `${term.index[0]}_${term.index[1]}`
       if (term.tags.includes('Negative') || term.tags.includes('Adverb')) {
         continue
-      } else if (term.tags.includes('Auxiliary') || term.tags.includes('Copula')) {
-        const conj = nlp(term.normal).verbs().conjugate()[0] as VerbConjugation | undefined
-        verbLemmas.set(idx, conj?.Infinitive || term.normal)
       } else {
         const conj = nlp(term.normal).verbs().conjugate()[0] as VerbConjugation | undefined
-        verbLemmas.set(idx, conj?.Infinitive || term.normal)
+        verbLemmas.set(key, conj?.Infinitive || term.root || term.normal)
       }
     }
   })
-
-  const nounLemmas = new Map()
-  const nounDoc = doc.clone()
-  ;(nounDoc as any).nouns().toSingular()
-  const nounTerms = nounDoc.json().flatMap((s: any) => s.terms)
-  const origTerms = doc.json().flatMap((s: any) => s.terms)
-  for (let i = 0; i < origTerms.length && i < nounTerms.length; i++) {
-    if (nounTerms[i] && origTerms[i].normal !== nounTerms[i].normal && origTerms[i].tags.includes('Plural')) {
-      nounLemmas.set(origTerms[i].index[1], nounTerms[i].normal)
-    }
-  }
 
   const json = doc.json()
   const result = []
@@ -99,15 +87,13 @@ export function lemmatizeEn(text: string): LemmaMatrixTerm[] {
   for (const sentence of json) {
     for (const term of sentence.terms) {
       if (term.tags.includes('Punctuation')) continue
-      const idx = term.index[1]
+      const key = `${term.index[0]}_${term.index[1]}`
 
       let lemma
-      if (verbLemmas.has(idx)) {
-        lemma = verbLemmas.get(idx)
-      } else if (nounLemmas.has(idx)) {
-        lemma = nounLemmas.get(idx)
+      if (verbLemmas.has(key)) {
+        lemma = verbLemmas.get(key)
       } else {
-        lemma = term.normal || term.text.toLowerCase()
+        lemma = term.root || term.normal || term.text.toLowerCase()
       }
 
       result.push({ text: term.text, lemma, pre: term.pre, post: term.post })
